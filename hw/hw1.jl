@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.11.12
+# v0.11.14
 
 using Markdown
 using InteractiveUtils
@@ -159,7 +159,7 @@ md"""
 
 # ╔═╡ 8c19fb72-ed6c-11ea-2728-3fa9219eddc4
 function vecvec_to_matrix(vecvec)
-	return [vecvec[i][j] for i in 1:length(vecvec), j in 1:length(vecvec[1])]
+	return [vecvec[i][j] for j in 1:length(vecvec)[1], i in 1:length(vecvec)]
 end
 #function vecvec_to_matrix(vecvec)
 #	nrow = length(vecvec)
@@ -173,8 +173,16 @@ end
 #	return matrix
 #end
 
+# ╔═╡ 5f4877b0-f5b2-11ea-0d3f-8fe690a9963b
+function vecvec_to_matrix2(vecvec)
+	hcat(vecvec...)
+end
+
 # ╔═╡ c4761a7e-edf2-11ea-1e75-118e73dadbed
 vecvec_to_matrix([[1,2], [3,4]])
+
+# ╔═╡ 93b3b2c0-f5b3-11ea-07a4-f58405ad4a33
+vecvec_to_matrix2([[1,2], [3,4]])
 
 # ╔═╡ 393667ca-edf2-11ea-09c5-c5d292d5e896
 md"""
@@ -188,8 +196,16 @@ function matrix_to_vecvec(matrix)
 	return [matrix[i,:] for i in 1:size(matrix)[1]]
 end
 
+# ╔═╡ 9b2a8e70-f5b3-11ea-008f-61c414790864
+function matrix_to_vecvec2(matrix)
+	collect(eachrow(matrix))
+end
+
 # ╔═╡ 70955aca-ed6e-11ea-2330-89b4d20b1795
 matrix_to_vecvec([6 7; 8 9])
+
+# ╔═╡ bc6554d0-f5b3-11ea-11b9-9d031b0e8773
+matrix_to_vecvec2([6 7; 8 9])
 
 # ╔═╡ 5da8cbe8-eded-11ea-2e43-c5b7cc71e133
 begin
@@ -775,6 +791,19 @@ function with_gaussian_blur(image)
 	end
 end
 
+# ╔═╡ d3823fa0-f4e8-11ea-0ed0-89d951b68c63
+begin
+G2(x,y,σ,s) = 1/(2π*σ)*exp(-(x^2 + y^2)/(2σ^2*s^2))
+G2(I::CartesianIndex{2},σ,s) = G(I.I...,σ,s)
+cart = CartesianIndices( (-100:100,-100:100) );
+end
+
+# ╔═╡ e62fe530-f4e8-11ea-1c77-6524d7133977
+@bind sigma Slider(0:0.0001:1, show_value=true)
+
+# ╔═╡ ea9191a0-f4e8-11ea-3206-e9bd31313743
+@bind step Slider(0:0.01:300, show_value=true)
+
 # ╔═╡ 377a4070-f3f4-11ea-24f9-d5594e8f3ce3
 Gray.(K(101,0.4,50))
 
@@ -856,6 +885,18 @@ end
 function blueify(x::ColorTypes.RGB)
 	return RGB(0, 0, x.b)
 end
+function red2green(x::ColorTypes.RGB)
+	return RGB(0, x.r, 0)
+end
+function green2red(x::ColorTypes.RGB)
+	return RGB(x.g, 0, 0)
+end
+function blue2green(x::ColorTypes.RGB)
+	return RGB(0, x.b, 0)
+end
+function green2blue(x::ColorTypes.RGB)
+	return RGB(0, 0, x.g)
+end
 end
 
 # ╔═╡ 9eeb876c-ee15-11ea-1794-d3ea79f47b75
@@ -867,6 +908,14 @@ begin
 	  	Gy = convolve_image(image, Ky)
 		return Gx, Gy
 	end
+  	function with_sobel_edge_detect_x(image)
+ 		Gx,Gy = sobels(image)
+		return Gx #rgb_sqrt.(rgb_sq.(Gx) .+ rgb_sq.(Gy))
+  	end
+  	function with_sobel_edge_detect_y(image)
+ 		Gx,Gy = sobels(image)
+		return Gy #rgb_sqrt.(rgb_sq.(Gx) .+ rgb_sq.(Gy))
+  	end
   	function with_sobel_edge_detect(image)
  		Gx,Gy = sobels(image)
 		return rgb_sqrt.(rgb_sq.(Gx) .+ rgb_sq.(Gy))
@@ -876,6 +925,30 @@ begin
 		return rgb_atan.(rgb_div.(Gy,Gx))
 	end
 end
+
+# ╔═╡ 4f0fc9d0-f4ee-11ea-2b28-275fb167d40b
+md""" 
+Here's something cool. The human eye is better as seeing green. If we swap the red and green intensities, the new (green) image (below) looks more crisp, even though the old (red) image above looks less crisp.
+"""
+
+# ╔═╡ 15931a50-f4ed-11ea-1f95-f54e324e17c9
+begin
+function rgb_mean_red(x)
+  r,c = size(x)
+  sum([x[i,j].r for i in 1:r, j in 1:c])/(r*c)
+end
+function rgb_mean_green(x)
+  r,c = size(x)
+  sum([x[i,j].g for i in 1:r, j in 1:c])/(r*c)
+end
+function rgb_mean_blue(x)
+  r,c = size(x)
+  sum([x[i,j].b for i in 1:r, j in 1:c])/(r*c)
+end
+end
+
+# ╔═╡ 2c2de320-f4ee-11ea-0075-e1c32242a01c
+
 
 # ╔═╡ 1b85ee76-ee10-11ea-36d7-978340ef61e6
 md"""
@@ -1450,7 +1523,14 @@ sobel_camera_image = process_raw_camera_data(sobel_raw_camera_data);
 sobel_camera_image
 
 # ╔═╡ 1bf94c00-ee19-11ea-0e3c-e12bc68d8e28
-with_sobel_edge_detect(sobel_camera_image)
+begin
+sob = with_sobel_edge_detect(sobel_camera_image)
+sob_x = with_sobel_edge_detect_x(sobel_camera_image)
+sob_y = with_sobel_edge_detect_y(sobel_camera_image)
+end
+
+# ╔═╡ e1a34540-f4f5-11ea-0000-c3109c44a94c
+[sob; sob_x; sob_y]
 
 # ╔═╡ eae82c6e-f440-11ea-0655-07a2e5eb0227
 with_sobel_edge_direction(sobel_camera_image)
@@ -1463,6 +1543,22 @@ sg = with_sobel_edge_detect(greenify.(sobel_camera_image))
 sb = with_sobel_edge_detect(blueify.(sobel_camera_image))
 [sr sg sb]
 end
+
+
+# ╔═╡ f0105490-f4ed-11ea-0b69-ed60d7597e1f
+green2red.(sg)
+
+# ╔═╡ 375bd360-f4ee-11ea-1383-33d832ecfa54
+red2green.(sr)
+
+# ╔═╡ 009172a0-f4ed-11ea-3ad9-db1ebd731c79
+rgb_mean_red(sa)
+
+# ╔═╡ 76f9a480-f4ed-11ea-31cd-b1470af40aec
+rgb_mean_green(sa)
+
+# ╔═╡ 7af05a20-f4ed-11ea-2439-bd95796063e5
+rgb_mean_blue(sa)
 
 # ╔═╡ 840ca9b0-f443-11ea-3ef8-41688bf2adb2
 [
@@ -1516,11 +1612,15 @@ end
 # ╟─e3394c8a-edf0-11ea-1bb8-619f7abb6881
 # ╟─22f28dae-edf2-11ea-25b5-11c369ae1253
 # ╠═8c19fb72-ed6c-11ea-2728-3fa9219eddc4
+# ╠═5f4877b0-f5b2-11ea-0d3f-8fe690a9963b
 # ╠═c4761a7e-edf2-11ea-1e75-118e73dadbed
+# ╠═93b3b2c0-f5b3-11ea-07a4-f58405ad4a33
 # ╟─adfbe9b2-ed6c-11ea-09ac-675262f420df
 # ╟─393667ca-edf2-11ea-09c5-c5d292d5e896
 # ╠═9f1c6d04-ed6c-11ea-007b-75e7e780703d
+# ╠═9b2a8e70-f5b3-11ea-008f-61c414790864
 # ╠═70955aca-ed6e-11ea-2330-89b4d20b1795
+# ╠═bc6554d0-f5b3-11ea-11b9-9d031b0e8773
 # ╟─e06b7fbc-edf2-11ea-1708-fb32599dded3
 # ╟─5da8cbe8-eded-11ea-2e43-c5b7cc71e133
 # ╠═8e565be0-f10b-11ea-081b-63e08a16674e
@@ -1644,6 +1744,9 @@ end
 # ╟─8a335044-ee19-11ea-0255-b9391246d231
 # ╠═7c50ea80-ee15-11ea-328f-6b4e4ff20b7e
 # ╠═aad67fd0-ee15-11ea-00d4-274ec3cda3a3
+# ╠═d3823fa0-f4e8-11ea-0ed0-89d951b68c63
+# ╠═e62fe530-f4e8-11ea-1c77-6524d7133977
+# ╠═ea9191a0-f4e8-11ea-3206-e9bd31313743
 # ╠═377a4070-f3f4-11ea-24f9-d5594e8f3ce3
 # ╟─7748e162-f3fa-11ea-30eb-f5dd64c1553d
 # ╠═66cc6920-f3f9-11ea-395b-7d708c552a9d
@@ -1658,9 +1761,18 @@ end
 # ╠═1a0324de-ee19-11ea-1d4d-db37f4136ad3
 # ╠═ecbe21c0-f43c-11ea-2e0c-59c92b86a10c
 # ╠═1bf94c00-ee19-11ea-0e3c-e12bc68d8e28
+# ╠═e1a34540-f4f5-11ea-0000-c3109c44a94c
 # ╠═eae82c6e-f440-11ea-0655-07a2e5eb0227
 # ╠═da8ffdb0-f442-11ea-12a7-e73e9349ed20
+# ╟─4f0fc9d0-f4ee-11ea-2b28-275fb167d40b
+# ╠═f0105490-f4ed-11ea-0b69-ed60d7597e1f
+# ╠═375bd360-f4ee-11ea-1383-33d832ecfa54
+# ╠═009172a0-f4ed-11ea-3ad9-db1ebd731c79
+# ╠═76f9a480-f4ed-11ea-31cd-b1470af40aec
+# ╠═7af05a20-f4ed-11ea-2439-bd95796063e5
+# ╠═15931a50-f4ed-11ea-1f95-f54e324e17c9
 # ╠═b8cb7870-f443-11ea-2eda-13b47ed2a4d1
+# ╠═2c2de320-f4ee-11ea-0075-e1c32242a01c
 # ╠═840ca9b0-f443-11ea-3ef8-41688bf2adb2
 # ╠═3bcdd4c0-f444-11ea-3439-4d47a980912e
 # ╠═0001f782-ee0e-11ea-1fb4-2b5ef3d241e2
