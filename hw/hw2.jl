@@ -92,15 +92,6 @@ html"""
 <iframe width="100%" height="450px" src="https://www.youtube.com/embed/gTGJ80HayK0?rel=0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 """
 
-# ╔═╡ b49e8cc8-f381-11ea-1056-91668ac6ae4e
-md"""
-## Shrinking an array
-
-Below is a function called `remove_in_each_row(img, pixels)`. It takes a matrix `img` and a vector of integers, `pixels`, and shrinks the image by 1 pixel in width by removing the element `img[i, pixels[i]]` in every row. This function is one of the building blocks of the Image Seam algorithm we saw in the lecture.
-
-Read it and convince yourself that it is correct.
-"""
-
 # ╔═╡ e799be82-f317-11ea-3ae4-6d13ece3fe10
 function remove_in_each_row(img, column_numbers)
 	@assert size(img, 1) == length(column_numbers) # same as the number of rows
@@ -842,7 +833,6 @@ bigbreak
 # ╠═0d144802-f319-11ea-0028-cd97a776a3d0
 # ╟─cc9fcdae-f314-11ea-1b9a-1f68b792f005
 # ╟─b49a21a6-f381-11ea-1a98-7f144c55c9b7
-# ╠═b49e8cc8-f381-11ea-1056-91668ac6ae4e
 # ╠═e799be82-f317-11ea-3ae4-6d13ece3fe10
 # ╟─c075a8e6-f382-11ea-2263-cd9507324f4f
 # ╠═9cced1a8-f326-11ea-0759-0b2f22e5a1db
