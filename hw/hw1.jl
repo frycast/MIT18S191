@@ -112,9 +112,7 @@ m = mean(random_vect)
 md"""👉 Write a function `demean`, which takes a vector `x` and subtracts the mean from each value in `x`."""
 
 # ╔═╡ ec5efe8c-edef-11ea-2c6f-afaaeb5bc50c
-function demean(x)
-	return x .- mean(x)
-end
+demean(x) = x .- mean(x)
 
 # ╔═╡ 0e5d2830-ef5b-11ea-2706-4b6af8c78f19
 mean(demean([1,2,3]))
@@ -174,9 +172,7 @@ end
 #end
 
 # ╔═╡ 5f4877b0-f5b2-11ea-0d3f-8fe690a9963b
-function vecvec_to_matrix2(vecvec)
-	hcat(vecvec...)
-end
+vecvec_to_matrix2(vecvec) = hcat(vecvec...)
 
 # ╔═╡ c4761a7e-edf2-11ea-1e75-118e73dadbed
 vecvec_to_matrix([[1,2], [3,4]])
@@ -192,14 +188,10 @@ md"""
 """
 
 # ╔═╡ 9f1c6d04-ed6c-11ea-007b-75e7e780703d
-function matrix_to_vecvec(matrix)
-	return [matrix[i,:] for i in 1:size(matrix)[1]]
-end
+matrix_to_vecvec(matrix) = [matrix[i,:] for i in 1:size(matrix)[1]]
 
 # ╔═╡ 9b2a8e70-f5b3-11ea-008f-61c414790864
-function matrix_to_vecvec2(matrix)
-	collect(eachrow(matrix))
-end
+matrix_to_vecvec2(matrix) = collect(eachrow(matrix))
 
 # ╔═╡ 70955aca-ed6e-11ea-2330-89b4d20b1795
 matrix_to_vecvec([6 7; 8 9])
@@ -297,9 +289,7 @@ md"""
 """
 
 # ╔═╡ 63e8d636-ee0b-11ea-173d-bd3327347d55
-function invert(color::AbstractRGB)
-	return RGB(1-color.r, 1-color.g, 1-color.b)
-end
+invert(color::AbstractRGB) = RGB(1-color.r, 1-color.g, 1-color.b)
 
 # ╔═╡ 2cc2f84e-ee0d-11ea-373b-e7ad3204bb00
 md"Let's invert some colors:"
@@ -478,9 +468,22 @@ A better solution is to use the *closest* value that is inside the vector. Effec
 #function extend(v, i)
 #	return v[1 .+ (i .> 0) .* (i .- 1) .+ (i .> length(v)) .* (length(v) .- i)]
 #end
-function extend(v, i)
-	return v[Int.(min.(max.(i,1),length(v)))]
+extend(v, i) = v[Int.(min.(max.(i,1),length(v)))]
+
+# ╔═╡ e1edf5ae-f81d-11ea-32b4-5b5256d0eb34
+begin
+single_extend(v,i) = v[min(max(i,1),length(v))]
+extend2(v,i) = broadcast( x -> single_extend(v,x), i )
 end
+
+# ╔═╡ 4723b050-f81e-11ea-06b2-33d6df1e82bd
+
+
+# ╔═╡ f06f3a30-f81e-11ea-0661-6f4696866297
+
+
+# ╔═╡ 769dcd00-f81b-11ea-21bd-cfff3ec1004e
+extend(v2,0)
 
 # ╔═╡ b7f3994c-ee1b-11ea-211a-d144db8eafc2
 md"_Some test cases:_"
@@ -611,7 +614,7 @@ For simplicity you can take $\sigma=1$.
 
 # ╔═╡ 1c8b4658-ee0c-11ea-2ede-9b9ed7d3125e
 function gaussian_kernel(n)
-	return 1 / sqrt(2π) .* exp.( -( (-(n-1)^2/2):((n-1)^2/2) ).^2 ./ 2)
+	return 1 / sqrt(2π) .* exp.( -( (-(n^2-1)/2):((n^2-1)/2) ).^2 ./ 2)
 end
 
 # ╔═╡ 7489fd00-f11c-11ea-29e3-236d6e357e5f
@@ -759,9 +762,6 @@ md"_Edit_ `K_test` _to create your own test case!_"
 
 # ╔═╡ e7f8b41a-ee25-11ea-287a-e75d33fbd98b
 convolve_image(philip, K_test)
-
-# ╔═╡ 368253a0-f43b-11ea-3164-79b06712e30d
-
 
 # ╔═╡ 8a335044-ee19-11ea-0255-b9391246d231
 md"""
@@ -1678,6 +1678,10 @@ end
 # ╟─7522f81e-ee1c-11ea-35af-a17eb257ff1a
 # ╟─801d90c0-ee09-11ea-28d6-61b806de26dc
 # ╠═802bec56-ee09-11ea-043e-51cf1db02a34
+# ╠═e1edf5ae-f81d-11ea-32b4-5b5256d0eb34
+# ╠═4723b050-f81e-11ea-06b2-33d6df1e82bd
+# ╠═f06f3a30-f81e-11ea-0661-6f4696866297
+# ╠═769dcd00-f81b-11ea-21bd-cfff3ec1004e
 # ╟─b7f3994c-ee1b-11ea-211a-d144db8eafc2
 # ╠═52163f20-f024-11ea-1620-c150beab332b
 # ╠═803905b2-ee09-11ea-2d52-e77ff79693b0
@@ -1740,7 +1744,6 @@ end
 # ╠═42dfa206-ee1e-11ea-1fcd-21671042064c
 # ╟─6e53c2e6-ee1e-11ea-21bd-c9c05381be07
 # ╠═e7f8b41a-ee25-11ea-287a-e75d33fbd98b
-# ╠═368253a0-f43b-11ea-3164-79b06712e30d
 # ╟─8a335044-ee19-11ea-0255-b9391246d231
 # ╠═7c50ea80-ee15-11ea-328f-6b4e4ff20b7e
 # ╠═aad67fd0-ee15-11ea-00d4-274ec3cda3a3

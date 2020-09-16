@@ -146,14 +146,15 @@ function remove_in_each_row_no_vcat(img, column_numbers)
 	@assert size(img, 1) == length(column_numbers) # same as the number of rows
 	m, n = size(img)
 	local img′ = similar(img, m, n-1) # create a similar image with one less column
-
 	for (i, j) in enumerate(column_numbers)
-		# EDIT THE FOLLOWING LINE and split it into two lines
-		# to avoid using `vcat`.
-		img′[i, :] .= vcat(img[i, 1:j-1], img[i, j+1:end])
+		img′[i, 1:j-1] =  img[i, 1:j-1]
+		img′[i, j:end] =  img[i, j+1:end]
 	end
 	img′
 end
+
+# ╔═╡ 2941f470-f828-11ea-157b-73bb46c69a1c
+collect(Iterators.filter(!=(3), 1:10))
 
 # ╔═╡ 67717d02-f327-11ea-0988-bfe661f57f77
 performance_experiment_without_vcat = @benchmark remove_in_each_row_no_vcat(img, 1:size(img, 1))
@@ -842,6 +843,7 @@ bigbreak
 # ╠═e501ea28-f326-11ea-252a-53949fd9ef57
 # ╟─f7915918-f366-11ea-2c46-2f4671ae8a22
 # ╠═37d4ea5c-f327-11ea-2cc5-e3774c232c2b
+# ╠═2941f470-f828-11ea-157b-73bb46c69a1c
 # ╠═67717d02-f327-11ea-0988-bfe661f57f77
 # ╟─9e149cd2-f367-11ea-28ef-b9533e8a77bb
 # ╟─e3519118-f387-11ea-0c61-e1c2de1c24c1
