@@ -153,9 +153,6 @@ function remove_in_each_row_no_vcat(img, column_numbers)
 	img′
 end
 
-# ╔═╡ 2941f470-f828-11ea-157b-73bb46c69a1c
-collect(Iterators.filter(!=(3), 1:10))
-
 # ╔═╡ 67717d02-f327-11ea-0988-bfe661f57f77
 performance_experiment_without_vcat = @benchmark remove_in_each_row_no_vcat(img, 1:size(img, 1))
 
@@ -173,7 +170,7 @@ md"""
 
 # ╔═╡ e49235a4-f367-11ea-3913-f54a4a6b2d6b
 no_vcat_observation = md"""
-<Your answer here>
+The number of estimated allocs reduced by 342 (from 1029 to 687). The image size is 342 rows by 452 columns. Since vcat makes a copy of the image, we have avoided 1 copy for each of the 342 passes through the for loop in `remove_in_each_row_no_vcat`.
 """
 
 # ╔═╡ 837c43a4-f368-11ea-00a3-990a45cb0cbd
@@ -843,7 +840,6 @@ bigbreak
 # ╠═e501ea28-f326-11ea-252a-53949fd9ef57
 # ╟─f7915918-f366-11ea-2c46-2f4671ae8a22
 # ╠═37d4ea5c-f327-11ea-2cc5-e3774c232c2b
-# ╠═2941f470-f828-11ea-157b-73bb46c69a1c
 # ╠═67717d02-f327-11ea-0988-bfe661f57f77
 # ╟─9e149cd2-f367-11ea-28ef-b9533e8a77bb
 # ╟─e3519118-f387-11ea-0c61-e1c2de1c24c1
