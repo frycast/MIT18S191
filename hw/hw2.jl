@@ -190,9 +190,8 @@ function remove_in_each_row_views(img, column_numbers)
 	local img′ = similar(img, m, n-1) # create a similar image with one less column
 
 	for (i, j) in enumerate(column_numbers)
-		# EDIT THE FOLLOWING LINE and split it into two lines
-		# to avoid using `vcat`.
-		img′[i, :] .= vcat(img[i, 1:j-1], img[i, j+1:end])
+		img′[i, 1:j-1] = @view img[i, 1:j-1]
+		img′[i, j:end] = @view img[i, j+1:end]
 	end
 	img′
 end
@@ -227,7 +226,7 @@ Nice! If you did your optimizations right, you should be able to get down the es
 
 # ╔═╡ fd819dac-f368-11ea-33bb-17148387546a
 views_observation = md"""
-<your answer here>
+There were 684 allocations avoided. This is because we have avoided 2 copies -- one for each slice -- on each of the 342 rows of the image.
 """
 
 # ╔═╡ 318a2256-f369-11ea-23a9-2f74c566549b
@@ -314,14 +313,34 @@ md"""
 👉 Implement the greedy approach.
 """
 
-# ╔═╡ 2f9cbea8-f3a1-11ea-20c6-01fd1464a592
-random_seam(m, n, i) = reduce((a, b) -> [a..., clamp(last(a) + rand(-1:1), 1, n)], 1:m-1; init=[i])
+# ╔═╡ 5fa5ea62-fe4c-11ea-3027-314522221fe6
+
 
 # ╔═╡ abf20aa0-f31b-11ea-2548-9bea4fab4c37
+begin
+myclamp(x,c) = Int.(min.(c,max.(1,x)))
 function greedy_seam(energies, starting_pixel::Int)
-	# you can delete the body of this function - it's just a placeholder.
-	random_seam(size(energies)..., starting_pixel)
+	r,c = size(energies)
+	seam = zeros(Int64,r)
+	seam[1] = starting_pixel
+	for i = 2:r
+		prev = seam[i-1]
+		curr = prev + argmin(energies[i, myclamp(prev-1:prev+1,c)])-2
+		if curr < 1 curr = 1 end
+		seam[i] =  curr
+	end
+	return seam
 end
+end
+
+# ╔═╡ 424f1f80-fe4d-11ea-110e-83ba9428415f
+
+
+# ╔═╡ 47b03000-fe4c-11ea-113b-9b1b6c60cc91
+greedy_seam(energy(img), 2)
+
+# ╔═╡ a769a66e-fe4c-11ea-1ef8-2b5782612a20
+argmin([1,1,1])
 
 # ╔═╡ 5430d772-f397-11ea-2ed8-03ee06d02a22
 md"Before we apply your function to our test image, let's try it out on a small matrix of energies (displayed here in grayscale), just like in the lecture snippet above (clicking on the video will take you to the right part of the video). Light pixels have high energy, dark pixels signify low energy."
@@ -332,6 +351,9 @@ md"Before we apply your function to our test image, let's try it out on a small 
 # 		md"Right now you are seeing the placeholder function. (You haven't done the exercise yet!) This is a straight line from the starting pixel."
 # 	end
 # catch end
+
+# ╔═╡ b64b64f0-ff12-11ea-24ad-b374d3d02e5c
+#visualize_seam_algorithm(recursive_seam, Gray.(pika), greedy_starting_pixel)
 
 # ╔═╡ 7ddee6fc-f394-11ea-31fc-5bd665a65bef
 greedy_test = Gray.(rand(Float64, (8,10)));
@@ -390,17 +412,34 @@ which is one of $j-1$, $j$ or $j+1$, up toboundary conditions.
 Return these two values in a tuple.
 """
 
+# ╔═╡ db65e8b0-fe71-11ea-2e7d-d32e0a065bda
+md"Note the function below is not exactly the one requested. Instead it returns a vector of all columns to jump (though the last column is repeated)"
+
 # ╔═╡ 8ec27ef8-f320-11ea-2573-c97b7b908cb7
 ## returns lowest possible sum energy at pixel (i, j), and the column to jump to in row i+1.
 function least_energy(energies, i, j)
 	# base case
-	# if i == something
-	#    return energies[...] # no need for recursive computation in the base case!
-	# end
-	#
+	r,c = size(energies)
+	if i == r
+	   return energies[i,j], j # no need for recursive computation in the base case!
+	end 
 	# induction
+	# This is terrible practice but I'm doing it anyway
+	next_lowest, next_j, next_next_j = 999, 0, 0
+	for k in myclamp(j-1:j+1,c)
+		lowestₖ, next_jₖ = least_energy(energies, i+1, k)
+		if lowestₖ < next_lowest
+			next_lowest = lowestₖ
+			next_j = k
+			next_next_j = next_jₖ
+		end
+	end
 	# combine results from recursive calls to `least_energy`.
+	return next_lowest + energies[i,j], vcat(next_j, next_next_j)
 end
+
+# ╔═╡ c7dd7580-fe5b-11ea-2046-4f22914284bd
+min(1,2,3)
 
 # ╔═╡ a7f3d9f8-f3bb-11ea-0c1a-55bbb8408f09
 md"""
@@ -437,12 +476,16 @@ This will give you the method used in the lecture to perform [exhaustive search 
 # ╔═╡ 85033040-f372-11ea-2c31-bb3147de3c0d
 function recursive_seam(energies, starting_pixel)
 	m, n = size(energies)
-	# Replace the following line with your code.
-	[rand(1:starting_pixel) for i=1:m]
+	# I'm paying for my sins with the next line
+	seam = vcat(starting_pixel, least_energy(energies, 1, starting_pixel)[2][1:m-1])
+	return seam
 end
 
 # ╔═╡ 1d55333c-f393-11ea-229a-5b1e9cabea6a
 md"Compute shrunk image: $(@bind shrink_recursive CheckBox())"
+
+# ╔═╡ 140b7ca0-fe74-11ea-1221-b5e2cb7df671
+md"Shrink by: $(@bind recursive_n Slider(1:5, show_value=true))"
 
 # ╔═╡ c572f6ce-f372-11ea-3c9a-e3a21384edca
 md"""
@@ -454,7 +497,8 @@ md"""
 
 # ╔═╡ 6d993a5c-f373-11ea-0dde-c94e3bbd1552
 exhaustive_observation = md"""
-<your answer here>
+* At each recursion step the algorithm checks all 3 possible directions. For each direction, the check only completes once all dependent recusion steps have completed and returned a value. Therefore all possible paths are checked.
+* There are $O(3^n)$ valid seams. 
 """
 
 # ╔═╡ ea417c2a-f373-11ea-3bb0-b1b5754f2fac
@@ -487,26 +531,60 @@ You are expected to read and understand the [documentation on dictionaries](http
 3. Access contents of the dictionary by a key.
 """
 
+# ╔═╡ 7e4c7480-00c1-11eb-04eb-e514b32cb9e9
+	#next_lowest = 9999
+	#for k in myclamp(j-1:j+1,c)
+	#  	lowestₖ = memoized_least_energy(energies, i+1, k, memory)
+	#  	if lowestₖ < next_lowest
+	#  	  	next_lowest = lowestₖ
+	#  	end
+	#end
+
 # ╔═╡ b1d09bc8-f320-11ea-26bb-0101c9a204e2
-function memoized_least_energy(energies, i, j, memory)
-	m, n = size(energies)
-	
-	# Replace the following line with your code.
-	[starting_pixel for i=1:m]
+begin
+function check_next_row(energies, i, j, c, memory)
+	mle(k) = memoized_least_energy(energies, i+1, k, memory)
+	next_lowest = minimum(mle.(myclamp(j-1:j+1,c)))
+	return next_lowest
 end
+function memoized_least_energy(energies, i, j, memory)
+	r, c = size(energies)
+	if (i == r)
+	  return energies[i,j]		
+	end
+	lowest = get(memory, (i,j), -1)
+	if ( lowest == -1 )  
+		lowest = check_next_row(energies, i, j, c, memory) + energies[i,j]
+		memory[(i,j)] = lowest
+	end
+	return lowest
+end
+end
+
+# ╔═╡ 11b84400-00c8-11eb-344e-4db57fdf9dc3
+	#seam[1] = starting_pixel
+	#for i = 2:r
+	#	mle(k) = memoized_least_energy(energies, i, k, memory)
+	#	pc = Int.(seam[i-1])
+	#	nc = myclamp(pc + argmin(mle.(myclamp(pc-1:pc+1,c))) - 2, c)
+	#	seam[i] = nc
+	#end
 
 # ╔═╡ 3e8b0868-f3bd-11ea-0c15-011bbd6ac051
 function recursive_memoized_seam(energies, starting_pixel)
-	memory = Dict{Tuple{Int,Int}, Float64}() # location => least energy.
-	                                         # pass this every time you call memoized_least_energy.
-	m, n = size(energies)
-	
-	# Replace the following line with your code.
-	[rand(1:starting_pixel) for i=1:m]
+	memory = Dict{Tuple{Int,Int}, Float64}()
+	r, c = size(energies)
+	seam = zeros(r)
+	energy_map = [memoized_least_energy(energies, i, j, memory) 
+		for i in 1:r, j in 1:c]
+	return greedy_seam(energy_map, starting_pixel)
 end
 
 # ╔═╡ 4e3bcf88-f3c5-11ea-3ada-2ff9213647b7
 md"Compute shrunk image: $(@bind shrink_dict CheckBox())"
+
+# ╔═╡ 96369c80-00c9-11eb-111e-715a469e0291
+md"Shrink by: $(@bind dict_nn Slider(1:20, show_value=true))"
 
 # ╔═╡ cf39fa2a-f374-11ea-0680-55817de1b837
 md"""
@@ -520,21 +598,39 @@ Write a variation of `matrix_memoized_least_energy` and `matrix_memoized_seam` w
 """
 
 # ╔═╡ c8724b5e-f3bd-11ea-0034-b92af21ca12d
-function matrix_memoized_least_energy(energies, i, j, memory)
-	m, n = size(energies)
-	
-	# Replace the following line with your code.
-	[starting_pixel for i=1:m]
+begin
+	function matrix_check_next_row(energies, i, j, c, memory)
+		mle(k) = matrix_memoized_least_energy(energies, i+1, k, memory)
+		next_lowest = minimum(mle.(myclamp(j-1:j+1,c)))
+		return next_lowest
+	end
+	function matrix_memoized_least_energy(energies, i, j, memory)
+		r, c = size(energies)
+		if (i == r)
+		  return energies[i,j]		
+		end
+		lowest = memory[i,j]
+		if ( lowest == -1 )  
+			lowest = matrix_check_next_row(energies, i, j, c, memory) + energies[i,j]
+			memory[i,j] = lowest
+		end
+		return lowest
+	end
 end
 
 # ╔═╡ be7d40e2-f320-11ea-1b56-dff2a0a16e8d
 function matrix_memoized_seam(energies, starting_pixel)
-	memory = zeros(size(energies)) # use this as storage -- intially it's all zeros
-	m, n = size(energies)
-	
-	# Replace the following line with your code.
-	[starting_pixel for i=1:m]
+	memory = zeros(size(energies)) .- 1
+	r, c = size(energies)
+	seam = zeros(r)
+	for i in 1:r, j in 1:c
+		matrix_memoized_least_energy(energies, i, j, memory)
+	end
+	return greedy_seam(memory, starting_pixel)
 end
+
+# ╔═╡ 9e412f84-00cf-11eb-1ed8-7bf5e6550e4f
+md"Shrink by: $(@bind dict_nnn Slider(1:20, show_value=true))"
 
 # ╔═╡ 507f3870-f3c5-11ea-11f6-ada3bb087634
 md"Compute shrunk image: $(@bind shrink_matrix CheckBox())"
@@ -552,7 +648,13 @@ Now it's easy to see that the above algorithm is equivalent to one that populate
 
 # ╔═╡ ff055726-f320-11ea-32f6-2bf38d7dd310
 function least_energy_matrix(energies)
-	copy(energies)
+	memory = zeros(size(energies)) .- 1
+	r, c = size(energies)
+	seam = zeros(r)
+	for i in 1:r, j in 1:c
+		matrix_memoized_least_energy(energies, i, j, memory)
+	end
+	return memory
 end
 
 # ╔═╡ 92e19f22-f37b-11ea-25f7-e321337e375e
@@ -563,13 +665,13 @@ md"""
 """
 
 # ╔═╡ 795eb2c4-f37b-11ea-01e1-1dbac3c80c13
-function seam_from_precomputed_least_energy(energies, starting_pixel::Int)
-	least_energies = least_energy_matrix(energies)
-	m, n = size(least_energies)
-	
-	# Replace the following line with your code.
-	[starting_pixel for i=1:m]
+function seam_from_precomputed_least_energy(energies, starting_pixel::Int, le)
+	m, n = size(le)
+	return greedy_seam(le, starting_pixel)
 end
+
+# ╔═╡ 0291a218-00d3-11eb-1768-b9a878c25e61
+Gray.(least_energy_matrix(energy(img))/7)
 
 # ╔═╡ 51df0c98-f3c5-11ea-25b8-af41dc182bac
 md"Compute shrunk image: $(@bind shrink_bottomup CheckBox())"
@@ -587,7 +689,12 @@ md"## Function library
 
 Just some helper functions used in the notebook."
 
+# ╔═╡ 61dd2376-00d5-11eb-049a-e5f1adedc6f6
+
+
 # ╔═╡ ef88c388-f388-11ea-3828-ff4db4d1874e
+begin
+import Base.clamp
 function mark_path(img, path)
 	img′ = copy(img)
 	m = size(img, 2)
@@ -600,11 +707,42 @@ function mark_path(img, path)
 	end
 	img′
 end
+end
+
+# ╔═╡ 2f9cbea8-f3a1-11ea-20c6-01fd1464a592
+random_seam(m, n, i) = reduce((a, b) -> [a..., clamp(last(a) + rand(-1:1), 1, n)], 1:m-1; init=[i])
+
+# ╔═╡ ca0eecf6-00d3-11eb-2d1d-9f2dafb73ea1
+function my_shrink_n(img, n, min_seam, imgs=[]; show_lightning=true)
+	n==0 && return push!(imgs, img)
+	e = energy(img)
+	le = least_energy_matrix(e)
+	seam_energy(seam) = sum(e[i, seam[i]]  for i in 1:size(img, 1))
+	_, min_j = findmin(map(j->seam_energy(min_seam(e, j, le)), 1:size(e, 2)))
+	min_seam_vec = min_seam(e, min_j, le)
+	img′ = remove_in_each_row(img, min_seam_vec)
+	if show_lightning
+		push!(imgs, mark_path(img, min_seam_vec))
+	else
+		push!(imgs, img′)
+	end
+	my_shrink_n(img′, n-1, min_seam, imgs)
+end
+
+# ╔═╡ 51e28596-f3c5-11ea-2237-2b72bbfaa001
+if shrink_bottomup
+	bottomup_carved = my_shrink_n(img, 200, seam_from_precomputed_least_energy)
+	md"Shrink by: $(@bind bottomup_n Slider(1:200, show_value=true))"
+end
+
+# ╔═╡ 0a10acd8-f3c6-11ea-3e2f-7530a0af8c7f
+if shrink_bottomup
+	bottomup_carved[bottomup_n]
+end
 
 # ╔═╡ 437ba6ce-f37d-11ea-1010-5f6a6e282f9b
 function shrink_n(img, n, min_seam, imgs=[]; show_lightning=true)
 	n==0 && return push!(imgs, img)
-
 	e = energy(img)
 	seam_energy(seam) = sum(e[i, seam[i]]  for i in 1:size(img, 1))
 	_, min_j = findmin(map(j->seam_energy(min_seam(e, j)), 1:size(e, 2)))
@@ -629,28 +767,6 @@ if shrink_greedy
 	greedy_carved[greedy_n]
 end
 
-# ╔═╡ d88bc272-f392-11ea-0efd-15e0e2b2cd4e
-if shrink_recursive
-	recursive_carved = shrink_n(img, 200, recursive_seam)
-	md"Shrink by: $(@bind recursive_n Slider(1:200, show_value=true))"
-end
-
-# ╔═╡ e66ef06a-f392-11ea-30ab-7160e7723a17
-if shrink_recursive
-	recursive_carved[recursive_n]
-end
-
-# ╔═╡ 4e3ef866-f3c5-11ea-3fb0-27d1ca9a9a3f
-if shrink_dict
-	dict_carved = shrink_n(img, 200, recursive_memoized_seam)
-	md"Shrink by: $(@bind dict_n Slider(1:200, show_value=true))"
-end
-
-# ╔═╡ 6e73b1da-f3c5-11ea-145f-6383effe8a89
-if shrink_dict
-	dict_carved[dict_n]
-end
-
 # ╔═╡ 50829af6-f3c5-11ea-04a8-0535edd3b0aa
 if shrink_matrix
 	matrix_carved = shrink_n(img, 200, matrix_memoized_seam)
@@ -659,18 +775,7 @@ end
 
 # ╔═╡ 9e56ecfa-f3c5-11ea-2e90-3b1839d12038
 if shrink_matrix
-	matrix_carved[matrix_n]
-end
-
-# ╔═╡ 51e28596-f3c5-11ea-2237-2b72bbfaa001
-if shrink_bottomup
-	bottomup_carved = shrink_n(img, 200, seam_from_precomputed_least_energy)
-	md"Shrink by: $(@bind bottomup_n Slider(1:200, show_value=true))"
-end
-
-# ╔═╡ 0a10acd8-f3c6-11ea-3e2f-7530a0af8c7f
-if shrink_bottomup
-	bottomup_carved[bottomup_n]
+	 matrix_carved[matrix_n]
 end
 
 # ╔═╡ ef26374a-f388-11ea-0b4e-67314a9a9094
@@ -686,10 +791,10 @@ end
 
 # ╔═╡ ddba07dc-f3b7-11ea-353e-0f67713727fc
 # Do not make this image bigger, it will be infeasible to compute.
-pika = decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),77)
+pika = decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),120)
 
-# ╔═╡ 73b52fd6-f3b9-11ea-14ed-ebfcab1ce6aa
-size(pika)
+# ╔═╡ e089dd10-fe58-11ea-21f6-eb3312cfb974
+least_energy(energy(pika), 1, 5)
 
 # ╔═╡ fa8e2772-f3b6-11ea-30f7-699717693164
 if compute_access
@@ -697,6 +802,58 @@ if compute_access
 	least_energy(tracked, 1,7)
 	tracked.accesses[]
 end
+
+# ╔═╡ 8de886c0-fe70-11ea-140e-ed3b60118fbd
+recursive_seam(energy(pika), 5)
+
+# ╔═╡ d88bc272-f392-11ea-0efd-15e0e2b2cd4e
+if shrink_recursive
+	recursive_carved = shrink_n(pika, recursive_n, recursive_memoized_seam)
+end
+
+# ╔═╡ e66ef06a-f392-11ea-30ab-7160e7723a17
+if shrink_recursive
+	recursive_carved[recursive_n]
+end
+
+# ╔═╡ 7a3fcd3e-00be-11eb-3b3d-49e28474850e
+memoized_least_energy(energy(pika), 1, 5, Dict{Tuple{Int,Int}, Float64}())
+
+# ╔═╡ ef5a05ce-ff12-11ea-304d-b5cfd0a5da0e
+decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),150)
+
+# ╔═╡ b12af0de-00c9-11eb-371e-331f405bf275
+pika2 = decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),50)
+
+# ╔═╡ 4e3ef866-f3c5-11ea-3fb0-27d1ca9a9a3f
+if shrink_dict
+	dict_carved = shrink_n(pika2, dict_nn, recursive_memoized_seam)
+	
+end
+
+# ╔═╡ 6e73b1da-f3c5-11ea-145f-6383effe8a89
+if shrink_dict
+	dict_carved[dict_nn]
+end
+
+# ╔═╡ dabf4f5e-00cf-11eb-2e26-1bd3d139929f
+pika3 = decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),20)
+
+# ╔═╡ 624467b2-00cf-11eb-3f71-b1acd05a6285
+if shrink_dict
+	dict_carved2 = shrink_n(pika3, dict_nnn, matrix_memoized_seam)
+end
+
+# ╔═╡ c93a7ede-00cf-11eb-38a0-230669437ef7
+if shrink_dict
+	dict_carved2[dict_nnn]
+end
+
+# ╔═╡ 970978fe-00d2-11eb-3341-554f2afd8c52
+pika4 = decimate(load(download("https://art.pixilart.com/901d53bcda6b27b.png")),4)
+
+# ╔═╡ 74af3028-00d2-11eb-14ec-273209abbacb
+Gray.(least_energy_matrix(energy(pika4)))
 
 # ╔═╡ ffc17f40-f380-11ea-30ee-0fe8563c0eb1
 hint(text) = Markdown.MD(Markdown.Admonition("hint", "Hint", [text]))
@@ -733,6 +890,9 @@ end;
 
 # ╔═╡ 2a7e49b8-f395-11ea-0058-013e51baa554
 visualize_seam_algorithm(greedy_seam, greedy_test, greedy_starting_pixel)
+
+# ╔═╡ 88ff2c20-ff12-11ea-22ff-cd6d73c21bcb
+visualize_seam_algorithm(recursive_seam, greedy_test, greedy_starting_pixel)
 
 # ╔═╡ ffe326e0-f380-11ea-3619-61dd0592d409
 yays = [md"Great!", md"Yay ❤", md"Great! 🎉", md"Well done!", md"Keep it up!", md"Good job!", md"Awesome!", md"You got the right answer!", md"Let's move on to the next section."]
@@ -874,12 +1034,18 @@ bigbreak
 # ╟─f5a74dfc-f388-11ea-2577-b543d31576c6
 # ╟─c3543ea4-f393-11ea-39c8-37747f113b96
 # ╟─2f9cbea8-f3a1-11ea-20c6-01fd1464a592
+# ╠═5fa5ea62-fe4c-11ea-3027-314522221fe6
 # ╠═abf20aa0-f31b-11ea-2548-9bea4fab4c37
+# ╠═424f1f80-fe4d-11ea-110e-83ba9428415f
+# ╠═47b03000-fe4c-11ea-113b-9b1b6c60cc91
+# ╠═a769a66e-fe4c-11ea-1ef8-2b5782612a20
 # ╟─5430d772-f397-11ea-2ed8-03ee06d02a22
-# ╟─f580527e-f397-11ea-055f-bb9ea8f12015
-# ╟─6f52c1a2-f395-11ea-0c8a-138a77f03803
-# ╟─2a7e49b8-f395-11ea-0058-013e51baa554
-# ╟─7ddee6fc-f394-11ea-31fc-5bd665a65bef
+# ╠═f580527e-f397-11ea-055f-bb9ea8f12015
+# ╠═6f52c1a2-f395-11ea-0c8a-138a77f03803
+# ╠═2a7e49b8-f395-11ea-0058-013e51baa554
+# ╠═88ff2c20-ff12-11ea-22ff-cd6d73c21bcb
+# ╠═b64b64f0-ff12-11ea-24ad-b374d3d02e5c
+# ╠═7ddee6fc-f394-11ea-31fc-5bd665a65bef
 # ╟─980b1104-f394-11ea-0948-21002f26ee25
 # ╟─9945ae78-f395-11ea-1d78-cf6ad19606c8
 # ╟─87efe4c2-f38d-11ea-39cc-bdfa11298317
@@ -890,48 +1056,67 @@ bigbreak
 # ╟─32e9a944-f3b6-11ea-0e82-1dff6c2eef8d
 # ╟─9101d5a0-f371-11ea-1c04-f3f43b96ca4a
 # ╠═ddba07dc-f3b7-11ea-353e-0f67713727fc
-# ╠═73b52fd6-f3b9-11ea-14ed-ebfcab1ce6aa
+# ╠═ef5a05ce-ff12-11ea-304d-b5cfd0a5da0e
+# ╠═e089dd10-fe58-11ea-21f6-eb3312cfb974
+# ╠═db65e8b0-fe71-11ea-2e7d-d32e0a065bda
 # ╠═8ec27ef8-f320-11ea-2573-c97b7b908cb7
+# ╠═c7dd7580-fe5b-11ea-2046-4f22914284bd
 # ╟─9f18efe2-f38e-11ea-0871-6d7760d0b2f6
 # ╟─a7f3d9f8-f3bb-11ea-0c1a-55bbb8408f09
-# ╟─fa8e2772-f3b6-11ea-30f7-699717693164
+# ╠═fa8e2772-f3b6-11ea-30f7-699717693164
 # ╟─18e0fd8a-f3bc-11ea-0713-fbf74d5fa41a
 # ╟─cbf29020-f3ba-11ea-2cb0-b92836f3d04b
 # ╟─8bc930f0-f372-11ea-06cb-79ced2834720
 # ╠═85033040-f372-11ea-2c31-bb3147de3c0d
+# ╠═8de886c0-fe70-11ea-140e-ed3b60118fbd
 # ╠═1d55333c-f393-11ea-229a-5b1e9cabea6a
+# ╠═140b7ca0-fe74-11ea-1221-b5e2cb7df671
 # ╠═d88bc272-f392-11ea-0efd-15e0e2b2cd4e
 # ╠═e66ef06a-f392-11ea-30ab-7160e7723a17
 # ╟─c572f6ce-f372-11ea-3c9a-e3a21384edca
 # ╠═6d993a5c-f373-11ea-0dde-c94e3bbd1552
 # ╠═ea417c2a-f373-11ea-3bb0-b1b5754f2fac
 # ╟─56a7f954-f374-11ea-0391-f79b75195f4d
+# ╟─7e4c7480-00c1-11eb-04eb-e514b32cb9e9
 # ╠═b1d09bc8-f320-11ea-26bb-0101c9a204e2
+# ╠═7a3fcd3e-00be-11eb-3b3d-49e28474850e
+# ╟─11b84400-00c8-11eb-344e-4db57fdf9dc3
 # ╠═3e8b0868-f3bd-11ea-0c15-011bbd6ac051
 # ╠═4e3bcf88-f3c5-11ea-3ada-2ff9213647b7
+# ╠═96369c80-00c9-11eb-111e-715a469e0291
+# ╠═b12af0de-00c9-11eb-371e-331f405bf275
 # ╠═4e3ef866-f3c5-11ea-3fb0-27d1ca9a9a3f
 # ╠═6e73b1da-f3c5-11ea-145f-6383effe8a89
 # ╟─cf39fa2a-f374-11ea-0680-55817de1b837
 # ╠═c8724b5e-f3bd-11ea-0034-b92af21ca12d
 # ╠═be7d40e2-f320-11ea-1b56-dff2a0a16e8d
+# ╠═dabf4f5e-00cf-11eb-2e26-1bd3d139929f
+# ╠═9e412f84-00cf-11eb-1ed8-7bf5e6550e4f
+# ╠═624467b2-00cf-11eb-3f71-b1acd05a6285
+# ╠═c93a7ede-00cf-11eb-38a0-230669437ef7
 # ╟─507f3870-f3c5-11ea-11f6-ada3bb087634
 # ╠═50829af6-f3c5-11ea-04a8-0535edd3b0aa
 # ╠═9e56ecfa-f3c5-11ea-2e90-3b1839d12038
 # ╟─4f48c8b8-f39d-11ea-25d2-1fab031a514f
 # ╟─24792456-f37b-11ea-07b2-4f4c8caea633
 # ╠═ff055726-f320-11ea-32f6-2bf38d7dd310
+# ╠═970978fe-00d2-11eb-3341-554f2afd8c52
+# ╠═74af3028-00d2-11eb-14ec-273209abbacb
 # ╟─e0622780-f3b4-11ea-1f44-59fb9c5d2ebd
 # ╟─92e19f22-f37b-11ea-25f7-e321337e375e
 # ╠═795eb2c4-f37b-11ea-01e1-1dbac3c80c13
+# ╠═0291a218-00d3-11eb-1768-b9a878c25e61
 # ╠═51df0c98-f3c5-11ea-25b8-af41dc182bac
 # ╠═51e28596-f3c5-11ea-2237-2b72bbfaa001
 # ╠═0a10acd8-f3c6-11ea-3e2f-7530a0af8c7f
-# ╟─946b69a0-f3a2-11ea-2670-819a5dafe891
-# ╟─0fbe2af6-f381-11ea-2f41-23cd1cf930d9
+# ╠═946b69a0-f3a2-11ea-2670-819a5dafe891
+# ╠═0fbe2af6-f381-11ea-2f41-23cd1cf930d9
 # ╟─48089a00-f321-11ea-1479-e74ba71df067
 # ╟─6b4d6584-f3be-11ea-131d-e5bdefcc791b
-# ╟─437ba6ce-f37d-11ea-1010-5f6a6e282f9b
-# ╟─ef88c388-f388-11ea-3828-ff4db4d1874e
+# ╠═ca0eecf6-00d3-11eb-2d1d-9f2dafb73ea1
+# ╠═437ba6ce-f37d-11ea-1010-5f6a6e282f9b
+# ╠═61dd2376-00d5-11eb-049a-e5f1adedc6f6
+# ╠═ef88c388-f388-11ea-3828-ff4db4d1874e
 # ╟─ef26374a-f388-11ea-0b4e-67314a9a9094
 # ╟─6bdbcf4c-f321-11ea-0288-fb16ff1ec526
 # ╟─ffc17f40-f380-11ea-30ee-0fe8563c0eb1
