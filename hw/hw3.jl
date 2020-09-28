@@ -52,7 +52,7 @@ Feel free to ask questions!
 # ╔═╡ 33e43c7c-f381-11ea-3abc-c942327456b1
 # edit the code below to set your name and kerberos ID (i.e. email without @mit.edu)
 
-student = (name = "Jazzy Doe", kerberos_id = "jazz")
+student = (name = "Daniel Fryer", kerberos_id = "none")
 
 # you might need to wait until all other cells in this notebook have completed running. 
 # scroll around the page to see what's up
