@@ -36,6 +36,9 @@ end
 # ╔═╡ e6b6760a-f37f-11ea-3ae1-65443ef5a81a
 md"_homework 3, version 3_"
 
+# ╔═╡ ba3a1bd0-04c4-11eb-14a5-6bda814e72a8
+@which 1+1
+
 # ╔═╡ 85cfbd10-f384-11ea-31dc-b5693630a4c5
 md"""
 
@@ -149,7 +152,7 @@ md"👉 Use `filter` to extract just the characters from our alphabet out of `me
 messy_sentence_1 = "#wow 2020 ¥500 (blingbling!)"
 
 # ╔═╡ 75694166-f998-11ea-0428-c96e1113e2a0
-cleaned_sentence_1 = missing
+(cleaned_sentence_1 = filter(isinalphabet, messy_sentence_1)) |> Text
 
 # ╔═╡ 05f0182c-f999-11ea-0a52-3d46c65a049e
 md"""
@@ -1133,6 +1136,7 @@ bigbreak
 # ╔═╡ Cell order:
 # ╟─e6b6760a-f37f-11ea-3ae1-65443ef5a81a
 # ╟─ec66314e-f37f-11ea-0af4-31da0584e881
+# ╠═ba3a1bd0-04c4-11eb-14a5-6bda814e72a8
 # ╟─85cfbd10-f384-11ea-31dc-b5693630a4c5
 # ╠═33e43c7c-f381-11ea-3abc-c942327456b1
 # ╟─938185ec-f384-11ea-21dc-b56b7469f798
