@@ -460,9 +460,7 @@ The only question left is: How do we compare two matrices? When two matrices are
 """
 
 # ╔═╡ 13c89272-f934-11ea-07fe-91b5d56dedf8
-function matrix_distance(A, B)
-	missing # do something with A .- B
-end
+matrix_distance(A, B) = sum(abs.(A .- B))
 
 # ╔═╡ 7d60f056-f931-11ea-39ae-5fa18a955a77
 distances = map(samples) do sample
@@ -577,7 +575,9 @@ ngrams([1, 2, 3, 42], 2) == bigrams([1, 2, 3, 42])
 
 # ╔═╡ 7be98e04-fb6b-11ea-111d-51c48f39a4e9
 function ngrams(words, n)
-	missing
+  map(1:length(words)-n+1) do i
+		words[i:i+n-1]
+  end
 end
 
 # ╔═╡ 052f822c-fb7b-11ea-382f-af4d6c2b4fdb
@@ -1242,7 +1242,7 @@ bigbreak
 # ╟─141af892-f933-11ea-1e5f-154167642809
 # ╟─7eed9dde-f931-11ea-38b0-db6bfcc1b558
 # ╟─7e3282e2-f931-11ea-272f-d90779264456
-# ╟─7d1439e6-f931-11ea-2dab-41c66a779262
+# ╠═7d1439e6-f931-11ea-2dab-41c66a779262
 # ╠═7df55e6c-f931-11ea-33b8-fdc3be0b6cfa
 # ╟─292e0384-fb57-11ea-0238-0fbe416fc976
 # ╠═7dabee08-f931-11ea-0cb2-c7d5afd21551
