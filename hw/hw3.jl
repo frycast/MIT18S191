@@ -695,11 +695,29 @@ If the same ngram occurs multiple times (e.g. "said Emma laughing"), then the la
 # ╔═╡ b726f824-fb5e-11ea-328e-03a30544037f
 function completions_cache(grams)
 	cache = Dict()
-	
-	# your code here
-	
-	cache
+	for word_array in grams
+		start = word_array[1:end-1]
+		last = word_array[end]
+		if haskey(cache, start)
+			push!(cache[start], word_array[end])
+		else
+			cache[start] = [last]
+		end
+	end
+	return cache
 end
+
+# ╔═╡ ea2497d0-0898-11eb-0775-c97e5aad9d6d
+a = [1,2,3]
+
+# ╔═╡ f2083f10-0898-11eb-2132-e76841d8b731
+d = Dict("a" => [1])
+
+# ╔═╡ 3bcdbe90-0899-11eb-10b5-6f2725c1e2f0
+push!(d["a"], 2)
+
+# ╔═╡ 487afbd0-0899-11eb-1155-d3d1e05c0512
+d
 
 # ╔═╡ 18355314-fb86-11ea-0738-3544e2e3e816
 let
@@ -801,9 +819,6 @@ md"""
 Uncomment the cell below to generate some Jane Austen text:
 """
 
-# ╔═╡ 49b69dc2-fb8f-11ea-39af-030b5c5053c3
-# generate(emma, 100; n=4) |> Quote
-
 # ╔═╡ cc07f576-fbf3-11ea-2c6f-0be63b9356fc
 if student.name == "Jazzy Doe"
 	md"""
@@ -852,6 +867,9 @@ generate(
 	n=generate_sample_n_words, 
 	use_words=true
 ) |> Quote
+
+# ╔═╡ 49b69dc2-fb8f-11ea-39af-030b5c5053c3
+generate(emma, 200; n=4) |> Quote
 
 # ╔═╡ ddef9c94-fb96-11ea-1f17-f173a4ff4d89
 function compimg(img, labels=[c*d for c in replace(alphabet, ' ' => "_"), d in replace(alphabet, ' ' => "_")])
@@ -1284,6 +1302,10 @@ bigbreak
 # ╠═953363dc-fb84-11ea-1128-ebdfaf5160ee
 # ╟─294b6f50-fb84-11ea-1382-03e9ab029a2d
 # ╠═b726f824-fb5e-11ea-328e-03a30544037f
+# ╠═ea2497d0-0898-11eb-0775-c97e5aad9d6d
+# ╠═f2083f10-0898-11eb-2132-e76841d8b731
+# ╠═3bcdbe90-0899-11eb-10b5-6f2725c1e2f0
+# ╠═487afbd0-0899-11eb-1155-d3d1e05c0512
 # ╠═18355314-fb86-11ea-0738-3544e2e3e816
 # ╠═abe2b862-fb69-11ea-08d9-ebd4ba3437d5
 # ╟─3d105742-fb8d-11ea-09b0-cd2e77efd15c
