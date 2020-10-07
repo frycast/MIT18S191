@@ -647,8 +647,13 @@ Dict(
 function word_counts(words::Vector)
 	counts = Dict()
 	
-	# your code here
-	
+	for word in words
+		if haskey(counts, word) 
+			counts[word] += 1
+		else
+			counts[word] = 1
+		end
+	end
 	return counts
 end
 
@@ -661,7 +666,7 @@ How many times does `"Emma"` occur in the book?
 """
 
 # ╔═╡ 953363dc-fb84-11ea-1128-ebdfaf5160ee
-emma_count = missing
+emma_count = word_counts(emma_words)["Emma"]
 
 # ╔═╡ 294b6f50-fb84-11ea-1382-03e9ab029a2d
 md"""
