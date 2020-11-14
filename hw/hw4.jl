@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.1
+# v0.12.10
 
 using Markdown
 using InteractiveUtils
@@ -136,7 +136,7 @@ md"""
 """
 
 # ╔═╡ c5c7cb86-041b-11eb-3360-45463105f3c9
-do_experiment(p, N) = [recovery_time(p) for i in 1:N]
+do_experiment(p, N) = [recovery_time(p) for _ in 1:N]
 
 # ╔═╡ d8abd2f6-0416-11eb-1c2a-f9157d9760a7
 small_experiment = do_experiment(0.5, 20)
@@ -286,10 +286,10 @@ md"""
 """
 
 # ╔═╡ bb63f3cc-042f-11eb-04ff-a128aec3c378
-@bind p_interactive Slider(0.01:0.01:1, show_value=true)
+@bind p_interactive Slider(0.1:0.01:1, show_value=true)
 
 # ╔═╡ 74790700-16c1-11eb-0fec-b1e4019c183c
-@bind N_interactive Slider(1:100:100_000, show_value=true)
+@bind N_interactive Slider(100:100:100_000, show_value=true)
 
 # ╔═╡ 1a4cc4b0-16c1-11eb-25a0-231e45140fc3
 begin
@@ -323,7 +323,13 @@ md"""
 """
 
 # ╔═╡ 7335de44-042f-11eb-2873-8bceef722432
+mean_time(p,N) = sum.(do_experiment.(p, N))./N
 
+# ╔═╡ 4f097d42-1b85-11eb-2864-0ba57d8cf0bd
+begin
+	p_vec = 0.001:0.001:1
+	plot(p_vec, mean_time(p_vec, 10_000))
+end
 
 # ╔═╡ 61789646-0403-11eb-0042-f3b8308f11ba
 md"""
@@ -355,7 +361,7 @@ We have just defined a new type `InfectionStatus`, as well as names `S`, `I` and
 """
 
 # ╔═╡ 7f4e121c-041d-11eb-0dff-cd0cbfdfd606
-test_status = missing
+test_status = S
 
 # ╔═╡ 7f744644-041d-11eb-08a0-3719cc0adeb7
 md"""
@@ -363,12 +369,15 @@ md"""
 """
 
 # ╔═╡ 88c53208-041d-11eb-3b1e-31b57ba99f05
-
+typeof(test_status)
 
 # ╔═╡ 847d0fc2-041d-11eb-2864-79066e223b45
 md"""
 👉 Convert `x` to an integer using the `Integer` function. What value does it have? What values do `I` and `R` have?
 """
+
+# ╔═╡ 4cd6bd60-1c38-11eb-181a-6b7105d62eee
+Int(test_status)
 
 # ╔═╡ 860790fc-0403-11eb-2f2e-355f77dcc7af
 md"""
@@ -378,9 +387,12 @@ For each agent we want to keep track of its infection status and the number of *
 """
 
 # ╔═╡ ae4ac4b4-041f-11eb-14f5-1bcde35d18f2
+begin
 mutable struct Agent
 	status::InfectionStatus
 	num_infected::Int64
+end
+Agent() = Agent(S, 0)
 end
 
 # ╔═╡ ae70625a-041f-11eb-3082-0753419d6d57
@@ -391,7 +403,7 @@ When you define a new type like this, Julia automatically defines one or more **
 """
 
 # ╔═╡ 60a8b708-04c8-11eb-37b1-3daec644ac90
-
+methods(Agent)
 
 # ╔═╡ 189cae1e-0424-11eb-2666-65bf297d8bdd
 md"""
@@ -399,7 +411,7 @@ md"""
 """
 
 # ╔═╡ 18d308c4-0424-11eb-176d-49feec6889cf
-test_agent = missing
+test_agent = Agent(S, 0)
 
 # ╔═╡ 190deebc-0424-11eb-19fe-615997093e14
 md"""
@@ -423,8 +435,12 @@ md"""
 
 # ╔═╡ 98beb336-0425-11eb-3886-4f8cfd210288
 function set_status!(agent::Agent, new_status::InfectionStatus)
-	
-	# your code here
+	agent.status = new_status
+end
+
+# ╔═╡ 32e9ca6e-266f-11eb-39da-09a6af5ac258
+function set_num_infected!(agent::Agent, new_num::Int64)
+	agent.num_infected = new_num
 end
 
 # ╔═╡ 866299e8-0403-11eb-085d-2b93459cc141
@@ -435,14 +451,12 @@ md"""
 
 # ╔═╡ 9a837b52-0425-11eb-231f-a74405ff6e23
 function is_susceptible(agent::Agent)
-	
-	return missing
+	return agent.status == S
 end
 
 # ╔═╡ a8dd5cae-0425-11eb-119c-bfcbf832d695
 function is_infected(agent::Agent)
-	
-	return missing
+	return agent.status == I
 end
 
 # ╔═╡ 8692bf42-0403-11eb-191f-b7d08895274f
@@ -454,8 +468,9 @@ md"""
 
 # ╔═╡ 7946d83a-04a0-11eb-224b-2b315e87bc84
 function generate_agents(N::Integer)
-	
-	return missing
+	agents = [Agent() for _ in 1:N]
+	set_status!(agents[rand(1:N)], I)
+	return agents
 end
 
 # ╔═╡ 488771e2-049f-11eb-3b0a-0de260457731
@@ -491,7 +506,16 @@ $(html"<span id=interactfunction></span>")
 
 # ╔═╡ 406aabea-04a5-11eb-06b8-312879457c42
 function interact!(agent::Agent, source::Agent, infection::InfectionRecovery)
-	# your code here
+	if (agent.status == I) 
+		if ( rand() < infection.p_recovery ) 
+			set_status!(agent, R) 
+		end
+	elseif ( agent.status == S && source.status == I )
+		if ( rand() < infection.p_infection ) 
+			set_status!(agent, I) 
+			set_num_infected!(source, source.num_infected + 1)
+		end
+	end
 end
 
 # ╔═╡ b21475c6-04ac-11eb-1366-f3b5e967402d
@@ -532,7 +556,20 @@ You should not use any global variables inside the functions: Each function must
 
 # ╔═╡ 2ade2694-0425-11eb-2fb2-390da43d9695
 function step!(agents::Vector{Agent}, infection::AbstractInfection)
-	# your code here
+	choices = rand(1:length(agents), 2)
+	interact!(agents[choices[1]], agents[choices[2]], infection)
+	return agents
+end
+
+# ╔═╡ 060549c8-2675-11eb-04f0-754c164f770c
+md"Testing the step! function on a small 5 agent vector"
+
+# ╔═╡ 4b18b06e-2674-11eb-272d-414160afe1b0
+begin
+test_agents = generate_agents(5)
+test_infection = InfectionRecovery(0.9, 0.5)
+for _ in 1:10 step!(test_agents, test_infection) end
+test_agents
 end
 
 # ╔═╡ 955321de-0403-11eb-04ce-fb1670dfbb9e
@@ -542,7 +579,7 @@ md"""
 
 # ╔═╡ 46133a74-04b1-11eb-0b46-0bc74e564680
 function sweep!(agents::Vector{Agent}, infection::AbstractInfection)
-	# your code here
+	for _ in 1:length(agents) step!(agents, infection) end
 end
 
 # ╔═╡ 95771ce2-0403-11eb-3056-f1dc3a8b7ec3
@@ -562,14 +599,20 @@ _Feel free to store the counts in a different way, as long as the return type is
 
 # ╔═╡ 887d27fc-04bc-11eb-0ab9-eb95ef9607f8
 function simulation(N::Integer, T::Integer, infection::AbstractInfection)
-
-	# your code here
-	
-	return (S=missing, I=missing, R=missing)
+	agents = generate_agents(N)
+	S_counts, I_counts, R_counts = zeros(T), zeros(T), zeros(T)
+	for i in 1:T
+		sweep!(agents, infection)
+		statuses = getfield.(agents, :status)
+		S_counts[i] = sum(statuses .== S)
+		I_counts[i] = sum(statuses .== I)
+		R_counts[i] = sum(statuses .== R)
+	end
+	return (S=S_counts, I=I_counts, R=R_counts)
 end
 
 # ╔═╡ b92f1cec-04ae-11eb-0072-3535d1118494
-simulation(3, 20, InfectionRecovery(0.9, 0.2))
+simulation(10, 20, InfectionRecovery(0.9, 0.2))
 
 # ╔═╡ 2c62b4ae-04b3-11eb-0080-a1035a7e31a2
 simulation(100, 1000, InfectionRecovery(0.005, 0.2))
@@ -1101,6 +1144,7 @@ bigbreak
 # ╠═7bb8e426-0495-11eb-3a8b-cbbab61a1631
 # ╟─77db111e-0403-11eb-2dea-4b42ceed65d6
 # ╠═7335de44-042f-11eb-2873-8bceef722432
+# ╠═4f097d42-1b85-11eb-2864-0ba57d8cf0bd
 # ╟─61789646-0403-11eb-0042-f3b8308f11ba
 # ╠═26f84600-041d-11eb-1856-b12a3e5c1dc7
 # ╟─271ec5f0-041d-11eb-041b-db46ec1465e0
@@ -1108,6 +1152,7 @@ bigbreak
 # ╟─7f744644-041d-11eb-08a0-3719cc0adeb7
 # ╠═88c53208-041d-11eb-3b1e-31b57ba99f05
 # ╟─847d0fc2-041d-11eb-2864-79066e223b45
+# ╠═4cd6bd60-1c38-11eb-181a-6b7105d62eee
 # ╟─860790fc-0403-11eb-2f2e-355f77dcc7af
 # ╠═ae4ac4b4-041f-11eb-14f5-1bcde35d18f2
 # ╟─ae70625a-041f-11eb-3082-0753419d6d57
@@ -1118,6 +1163,7 @@ bigbreak
 # ╠═82f2580a-04c8-11eb-1eea-bdb4e50eee3b
 # ╟─8631a536-0403-11eb-0379-bb2e56927727
 # ╠═98beb336-0425-11eb-3886-4f8cfd210288
+# ╠═32e9ca6e-266f-11eb-39da-09a6af5ac258
 # ╟─7c515a7a-04d5-11eb-0f36-4fcebff709d5
 # ╟─866299e8-0403-11eb-085d-2b93459cc141
 # ╠═9a837b52-0425-11eb-231f-a74405ff6e23
@@ -1139,6 +1185,8 @@ bigbreak
 # ╟─f8e05d94-04ac-11eb-26d4-6f1d2c5ed272
 # ╟─619c8a10-0403-11eb-2e89-8b0974fb01d0
 # ╠═2ade2694-0425-11eb-2fb2-390da43d9695
+# ╟─060549c8-2675-11eb-04f0-754c164f770c
+# ╠═4b18b06e-2674-11eb-272d-414160afe1b0
 # ╟─955321de-0403-11eb-04ce-fb1670dfbb9e
 # ╠═46133a74-04b1-11eb-0b46-0bc74e564680
 # ╟─95771ce2-0403-11eb-3056-f1dc3a8b7ec3
