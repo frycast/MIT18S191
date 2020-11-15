@@ -682,24 +682,13 @@ function repeat_simulations(N, T, infection, num_simulations)
 	end
 end
 
-# ╔═╡ 80c2cd88-04b1-11eb-326e-0120a39405ea
-simulations = repeat_simulations(100, 1000, InfectionRecovery(0.02, 0.002), 20)
-
 # ╔═╡ 80e6f1e0-04b1-11eb-0d4e-475f1d80c2bb
 md"""
 In the cell below, we plot the evolution of the number of $I$ individuals as a function of time for each of the simulations on the same plot using transparency (`alpha=0.5` inside the plot command).
 """
 
-# ╔═╡ 9cd2bb00-04b1-11eb-1d83-a703907141a7
-let
-	p = plot()
-	
-	for sim in simulations
-		plot!(p, 1:1000, sim.I, alpha=.5, label=nothing)
-	end
-	
-	p
-end
+# ╔═╡ 6449f958-2741-11eb-3998-370437341180
+@code_lowered first([1,2,3])
 
 # ╔═╡ 95c598d4-0403-11eb-2328-0175ed564915
 md"""
@@ -709,13 +698,19 @@ md"""
 # ╔═╡ 843fd63c-04d0-11eb-0113-c58d346179d6
 function sir_mean_plot(simulations::Vector{<:NamedTuple})
 	# you might need T for this function, here's a trick to get it:
-	T = length(first(simulations).S)
+	# T = length(first(simulations).S)
 	
-	return missing
+	means_S = sum(x->x.S, simulations) / length(simulations)
+	means_I = sum(x->x.I, simulations) / length(simulations)
+	means_R = sum(x->x.R, simulations) / length(simulations)
+	T = length(means_S)
+	p = plot()
+	plot!(p, 1:T, means_S, label = "S")
+	plot!(p, 1:T, means_I, label = "I")
+	plot!(p, 1:T, means_R, label = "R")
+	
+	return p
 end
-
-# ╔═╡ 7f635722-04d0-11eb-3209-4b603c9e843c
-sir_mean_plot(simulations)
 
 # ╔═╡ dfb99ace-04cf-11eb-0739-7d694c837d59
 md"""
@@ -723,7 +718,48 @@ md"""
 """
 
 # ╔═╡ 1c6aa208-04d1-11eb-0b87-cf429e6ff6d0
+@bind p_infection Slider(0:0.001:0.2, show_value = true)
 
+# ╔═╡ b125fe3a-2745-11eb-342b-dffe918672ef
+@bind p_recovery Slider(0:0.001:p_infection, show_value = true)
+
+# ╔═╡ 80c2cd88-04b1-11eb-326e-0120a39405ea
+simulations = repeat_simulations(100, 1000, InfectionRecovery(p_infection, p_recovery), 20)
+
+# ╔═╡ 9cd2bb00-04b1-11eb-1d83-a703907141a7
+let
+	p = plot()
+	
+	for sim in simulations
+		plot!(p, 1:1000, sim.I, alpha=.5, label=nothing)
+	end
+	
+	means = sum(x->x.I, simulations) / length(simulations)
+	
+	plot!(p, 1:1000, means, lwd=3, colour="red", label="mean")
+	p
+end
+
+# ╔═╡ dcc8a818-273d-11eb-2889-3dc2d7bd0725
+length(simulations)
+
+# ╔═╡ cf775452-273f-11eb-0b19-a1f939a4efed
+begin
+means = zeros(1000)
+map(simulations) do x
+	means .+= x.I
+end
+means ./= length(simulations)
+end
+
+# ╔═╡ 8c2bd2f2-2741-11eb-0082-1b04e7d679f5
+getindex.(simulations, :S)
+
+# ╔═╡ bfd7348c-2743-11eb-0103-cdf90aaaf0c2
+sum(x->x.I, simulations) / length(simulations)
+
+# ╔═╡ 7f635722-04d0-11eb-3209-4b603c9e843c
+sir_mean_plot(simulations)
 
 # ╔═╡ 95eb9f88-0403-11eb-155b-7b2d3a07cff0
 md"""
@@ -735,10 +771,26 @@ This should confirm that the distribution of $I$ at each step is pretty wide!
 # ╔═╡ 287ee7aa-0435-11eb-0ca3-951dbbe69404
 function sir_mean_error_plot(simulations::Vector{<:NamedTuple})
 	# you might need T for this function, here's a trick to get it:
-	T = length(first(simulations).S)
-	
-	return missing
+	#T = length(first(simulations).S)
+	means_S = sum(x->x.S, simulations) / length(simulations)
+	means_I = sum(x->x.I, simulations) / length(simulations)
+	means_R = sum(x->x.R, simulations) / length(simulations)
+	v_S = sum(x-> (x.S .- means_S).^2, simulations) / (length(simulations)-1)
+	v_I = sum(x-> (x.I .- means_I).^2, simulations) / (length(simulations)-1)
+	v_R = sum(x-> (x.R .- means_R).^2, simulations) / (length(simulations)-1)
+	T = length(means_S)
+	p = plot()
+	plot!(p, 1:T, means_S, label = "S", lwd = 3)
+	plot!(p, 1:T, means_I, label = "I", lwd = 3)
+	plot!(p, 1:T, means_R, label = "R", lwd = 3)
+	plot!(p, 1:T, means_S, yerr = sqrt.(v_S), alpha = 0.1, label=nothing)
+	plot!(p, 1:T, means_I, yerr = sqrt.(v_I), alpha = 0.1, label=nothing)
+	plot!(p, 1:T, means_R, yerr = sqrt.(v_R), alpha = 0.1, label=nothing)
+	return p
 end
+
+# ╔═╡ 2bb2d98c-2748-11eb-174d-1567abea00c6
+sir_mean_error_plot(simulations)
 
 # ╔═╡ 9611ca24-0403-11eb-3582-b7e3bb243e62
 md"""
@@ -1095,6 +1147,9 @@ bigbreak
 # ╔═╡ 5689841e-0414-11eb-0492-63c77ddbd136
 bigbreak
 
+# ╔═╡ b18cea78-2745-11eb-0ba8-03a91cac8d2c
+
+
 # ╔═╡ Cell order:
 # ╟─01341648-0403-11eb-2212-db450c299f35
 # ╟─03a85970-0403-11eb-334a-812b59c0905b
@@ -1201,15 +1256,22 @@ bigbreak
 # ╠═80c2cd88-04b1-11eb-326e-0120a39405ea
 # ╟─80e6f1e0-04b1-11eb-0d4e-475f1d80c2bb
 # ╠═9cd2bb00-04b1-11eb-1d83-a703907141a7
-# ╟─9cf9080a-04b1-11eb-12a0-17013f2d37f5
+# ╠═dcc8a818-273d-11eb-2889-3dc2d7bd0725
+# ╠═cf775452-273f-11eb-0b19-a1f939a4efed
+# ╠═6449f958-2741-11eb-3998-370437341180
+# ╠═8c2bd2f2-2741-11eb-0082-1b04e7d679f5
+# ╠═bfd7348c-2743-11eb-0103-cdf90aaaf0c2
+# ╠═9cf9080a-04b1-11eb-12a0-17013f2d37f5
 # ╟─95c598d4-0403-11eb-2328-0175ed564915
 # ╠═843fd63c-04d0-11eb-0113-c58d346179d6
 # ╠═7f635722-04d0-11eb-3209-4b603c9e843c
-# ╟─dfb99ace-04cf-11eb-0739-7d694c837d59
+# ╠═dfb99ace-04cf-11eb-0739-7d694c837d59
 # ╠═1c6aa208-04d1-11eb-0b87-cf429e6ff6d0
-# ╟─95eb9f88-0403-11eb-155b-7b2d3a07cff0
+# ╠═b125fe3a-2745-11eb-342b-dffe918672ef
+# ╠═95eb9f88-0403-11eb-155b-7b2d3a07cff0
 # ╠═287ee7aa-0435-11eb-0ca3-951dbbe69404
-# ╟─9611ca24-0403-11eb-3582-b7e3bb243e62
+# ╠═2bb2d98c-2748-11eb-174d-1567abea00c6
+# ╠═9611ca24-0403-11eb-3582-b7e3bb243e62
 # ╠═26e2978e-0435-11eb-0d61-25f552d2771e
 # ╟─9635c944-0403-11eb-3982-4df509f6a556
 # ╠═4ad11052-042c-11eb-3643-8b2b3e1269bc
@@ -1233,3 +1295,4 @@ bigbreak
 # ╟─3d88c056-0414-11eb-0025-05d3aff1588b
 # ╟─3c0528a0-0414-11eb-2f68-a5657ab9e73d
 # ╟─39dffa3c-0414-11eb-0197-e72b299e9c63
+# ╠═b18cea78-2745-11eb-0ba8-03a91cac8d2c
