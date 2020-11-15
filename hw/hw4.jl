@@ -780,12 +780,9 @@ function sir_mean_error_plot(simulations::Vector{<:NamedTuple})
 	v_R = sum(x-> (x.R .- means_R).^2, simulations) / (length(simulations)-1)
 	T = length(means_S)
 	p = plot()
-	plot!(p, 1:T, means_S, label = "S", lwd = 3)
-	plot!(p, 1:T, means_I, label = "I", lwd = 3)
-	plot!(p, 1:T, means_R, label = "R", lwd = 3)
-	plot!(p, 1:T, means_S, yerr = sqrt.(v_S), alpha = 0.1, label=nothing)
-	plot!(p, 1:T, means_I, yerr = sqrt.(v_I), alpha = 0.1, label=nothing)
-	plot!(p, 1:T, means_R, yerr = sqrt.(v_R), alpha = 0.1, label=nothing)
+	plot!(p, 1:T, means_S, ribbon = sqrt.(v_S), fillalpha = 0.1, label="S")
+	plot!(p, 1:T, means_I, ribbon = sqrt.(v_I), fillalpha = 0.1, label="I")
+	plot!(p, 1:T, means_R, ribbon = sqrt.(v_R), fillalpha = 0.1, label="R")
 	return p
 end
 
@@ -801,7 +798,17 @@ md"""
 """
 
 # ╔═╡ 26e2978e-0435-11eb-0d61-25f552d2771e
-
+begin
+function sim_num_infected(N::Integer, T::Integer, infection::AbstractInfection)
+	agents = generate_agents(N)
+	for i in 1:T
+		sweep!(agents, infection)
+	end
+	return getfield.(agents, :num_infected)
+end
+sni = sim_num_infected(10000, 1000, InfectionRecovery(p_infection, p_recovery))
+histogram(sni)
+end
 
 # ╔═╡ 9635c944-0403-11eb-3982-4df509f6a556
 md"""
@@ -811,7 +818,11 @@ md"""
 """
 
 # ╔═╡ 4ad11052-042c-11eb-3643-8b2b3e1269bc
-
+md""" 
+* total number of people infected = $(sum(sni))
+* average number infected per agent = $(sum(sni)/length(sni))
+* maximum number of people infected at any one time = $(maximum(simulations[1].I))
+"""
 
 # ╔═╡ 61c00724-0403-11eb-228d-17c11670e5d1
 md"""
