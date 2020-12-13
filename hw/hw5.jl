@@ -435,7 +435,8 @@ You can use the keyword argument `c=color.(agents)` inside your call to the plot
 # ╔═╡ 1ccc961e-0a69-11eb-392b-915be07ef38d
 function visualize(agents::Vector, L)
 	positions = get_tuple.(position.(agents))
-	p = plot(positions, seriestype = :scatter, ratio = 1, c = color.(agents))
+	p = plot(positions, seriestype = :scatter, ratio = 1, c = color.(agents), 
+		legend = false)
 	return p
 end
 
@@ -620,13 +621,71 @@ Let's make our plot come alive! There are two options to make our visualization 
 This an optional exercise, and our solution to 2️⃣ is given below.
 """
 
+# ╔═╡ cd931cf2-3d33-11eb-0565-abfc49c2e4c0
+
+
 # ╔═╡ e5040c9e-0a65-11eb-0f45-270ab8161871
-# let
-# 	N = 50
-# 	L = 30
+counts, states = let
+	N = 50
+	L = 30
 	
-# 	missing
-# end
+	states = []
+	counts = []
+	S_n, I_n, R_n = [], [], []
+	agents = initialize(N, L)
+	
+	for sweep in 1:k_sweep_max
+		for _ in 1:N
+			step!(agents, L, pandemic)
+		end
+		push!(S_n, sum(get_status.(agents) .== S) )
+		push!(I_n, sum(get_status.(agents) .== I) )
+		push!(R_n, sum(get_status.(agents) .== R) )
+		if sweep % 50 == 0
+			push!(counts, deepcopy((S_n, I_n, R_n)))
+			push!(states, deepcopy(agents))
+		end
+	end
+	counts, states
+end
+
+# ╔═╡ a3f180f4-3d34-11eb-3c3e-0b191891eeaa
+@bind t Slider(1:100, default=10)
+
+# ╔═╡ 90794bba-3d34-11eb-2f70-0da9e08ea54d
+begin
+p = plot(counts[t][1], color = color(S), label = "susceptible")
+plot!(p, counts[t][2], color = color(I), label = "infected")
+plot!(p, counts[t][3], color = color(R), label = "recovered")
+plot(p, visualize(states[t], 30))
+end
+
+# ╔═╡ f55659d2-3d35-11eb-3675-bfc8d6d0d687
+let
+	
+	N = 50
+	L = 40
+	
+	agents = initialize(N, L)
+	S_n, I_n, R_n = [],[],[]
+	
+	Tmax = 200
+	@gif for t in 1:Tmax
+		for _ in 1:50N
+			step!(agents, L, pandemic)
+		end
+		
+		push!(S_n, sum(get_status.(agents) .== S))
+		push!(I_n, sum(get_status.(agents) .== I))
+		push!(R_n, sum(get_status.(agents) .== R))
+		
+		p = plot(counts[t][1], color = color(S), label = "susceptible")
+        plot!(p, counts[t][2], color = color(I), label = "infected")
+        plot!(p, counts[t][3], color = color(R), label = "recovered")
+		
+		plot(p, visualize(agents, L))
+	end
+end
 
 # ╔═╡ 2031246c-0a45-11eb-18d3-573f336044bf
 md"""
@@ -1105,7 +1164,11 @@ bigbreak
 # ╠═ef27de84-0a63-11eb-177f-2197439374c5
 # ╟─8475baf0-0a63-11eb-1207-23f789d00802
 # ╟─201a3810-0a45-11eb-0ac9-a90419d0b723
+# ╠═cd931cf2-3d33-11eb-0565-abfc49c2e4c0
 # ╠═e5040c9e-0a65-11eb-0f45-270ab8161871
+# ╠═a3f180f4-3d34-11eb-3c3e-0b191891eeaa
+# ╠═90794bba-3d34-11eb-2f70-0da9e08ea54d
+# ╠═f55659d2-3d35-11eb-3675-bfc8d6d0d687
 # ╟─f9b9e242-0a53-11eb-0c6a-4d9985ef1687
 # ╟─2031246c-0a45-11eb-18d3-573f336044bf
 # ╠═63dd9478-0a45-11eb-2340-6d3d00f9bb5f
