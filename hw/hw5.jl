@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.10
+# v0.12.17
 
 using Markdown
 using InteractiveUtils
@@ -474,10 +474,25 @@ Write a function `interact!` that takes two `Agent`s and a `CollisionInfectionRe
 - if the first agent is infectious, it recovers with some probability
 """
 
+# ╔═╡ ee5c548e-3d11-11eb-0367-6555ca14c8a7
+begin
+	function set_status!(agent, new_status)
+		agent.status = new_status
+	end
+end
+
 # ╔═╡ d1bcd5c4-0a4b-11eb-1218-7531e367a7ff
-#function interact!(agent::Agent, source::Agent, infection::CollisionInfectionRecovery)
-	#missing
-#end
+function interact!(agent::Agent, source::Agent, infection::CollisionInfectionRecovery)
+	if agent.status == I
+		if rand() < infection.p_recovery
+			set_status!(agent, R) 
+	    end
+	elseif agent.status == S && source.status == I
+		if agent.position == source.position
+			set_status!(agent, I)
+		end
+	end
+end
 
 # ╔═╡ 34778744-0a5f-11eb-22b6-abe8b8fc34fd
 md"""
@@ -495,11 +510,23 @@ Your turn!
 - return the array `agents` again.
 """
 
+# ╔═╡ 2d5f2b1e-3d14-11eb-2d35-7d35f97e9412
+function agent_step!(source::Agent, L::Number) 
+	source.position = collide_boundary(source.position + rand(possible_moves),   L)
+end
+
 # ╔═╡ 24fe0f1a-0a69-11eb-29fe-5fb6cbf281b8
-# function step!(agents::Vector, L::Number, infection::AbstractInfection)
-	
-# 	return missing
-# end
+function step!(agents::Vector, L::Number, infection::AbstractInfection)
+	indices = 1:length(agents)
+	source_index = rand(indices)
+	agent_step!(agents[source_index], L)
+	for i in indices
+		if i != source_index
+			interact!(agents[i], agents[source_index], infection)
+		end
+	end
+return agents
+end
 
 # ╔═╡ 1fc3271e-0a45-11eb-0e8d-0fd355f5846b
 md"""
@@ -525,15 +552,22 @@ pandemic = CollisionInfectionRecovery(0.5, 0.00001)
 @bind k_sweeps Slider(1:10000, default=1000)
 
 # ╔═╡ 778c2490-0a62-11eb-2a6c-e7fab01c6822
-# let
-# 	N = 50
-# 	L = 40
+let
+	N = 50
+	L = 40
+	agents = initialize(N, L)
 	
-# 	plot_before = plot(1:3) # replace with your code
-# 	plot_after = plot(1:3)
+	plot_before = visualize(agents, L)
 	
-# 	plot(plot_before, plot_after)
-# end
+	# sweeps
+    for _ in 1:k_sweeps*N
+		step!(agents, L, pandemic)
+	end
+	
+	plot_after = visualize(agents, L)
+	
+	plot(plot_before, plot_after)
+end
 
 # ╔═╡ e964c7f0-0a61-11eb-1782-0b728fab1db0
 md"""
@@ -545,15 +579,33 @@ Every time that you move the slider, a completely new simulation is created an r
 """
 
 # ╔═╡ 4d83dbd0-0a63-11eb-0bdc-757f0e721221
-k_sweep_max = 10000
+k_sweep_max = 10_000
+
+# ╔═╡ 62230726-3d19-11eb-17d3-e7aab3048862
+get_status(a::Agent) = a.status
 
 # ╔═╡ ef27de84-0a63-11eb-177f-2197439374c5
 let
 	N = 50
 	L = 30
 	
-	# agents = initialize(N, L)
+	S_n, I_n, R_n = [], [], []
+	
+	agents = initialize(N, L)
 	# compute k_sweep_max number of sweeps and plot the SIR
+	
+	for _ in 1:k_sweep_max
+		for _ in 1:N
+			step!(agents, L, pandemic)
+		end
+		push!(S_n, sum(get_status.(agents) .== S) )
+		push!(I_n, sum(get_status.(agents) .== I) )
+		push!(R_n, sum(get_status.(agents) .== R) )
+	end
+	
+	p = plot(S_n, label = "susceptible")
+	plot!(p, I_n, label = "infectious")
+	plot!(p, R_n, label = "recovered")
 end
 
 # ╔═╡ 201a3810-0a45-11eb-0ac9-a90419d0b723
@@ -1037,9 +1089,11 @@ bigbreak
 # ╟─f953e06e-099f-11eb-3549-73f59fed8132
 # ╠═e6dd8258-0a4b-11eb-24cb-fd5b3554381b
 # ╠═de88b530-0a4b-11eb-05f7-85171594a8e8
-# ╟─80f39140-0aef-11eb-21f7-b788c5eab5c9
+# ╠═80f39140-0aef-11eb-21f7-b788c5eab5c9
+# ╠═ee5c548e-3d11-11eb-0367-6555ca14c8a7
 # ╠═d1bcd5c4-0a4b-11eb-1218-7531e367a7ff
-# ╟─34778744-0a5f-11eb-22b6-abe8b8fc34fd
+# ╠═34778744-0a5f-11eb-22b6-abe8b8fc34fd
+# ╠═2d5f2b1e-3d14-11eb-2d35-7d35f97e9412
 # ╠═24fe0f1a-0a69-11eb-29fe-5fb6cbf281b8
 # ╟─1fc3271e-0a45-11eb-0e8d-0fd355f5846b
 # ╟─18552c36-0a4d-11eb-19a0-d7d26897af36
@@ -1047,6 +1101,7 @@ bigbreak
 # ╠═778c2490-0a62-11eb-2a6c-e7fab01c6822
 # ╟─e964c7f0-0a61-11eb-1782-0b728fab1db0
 # ╠═4d83dbd0-0a63-11eb-0bdc-757f0e721221
+# ╠═62230726-3d19-11eb-17d3-e7aab3048862
 # ╠═ef27de84-0a63-11eb-177f-2197439374c5
 # ╟─8475baf0-0a63-11eb-1207-23f789d00802
 # ╟─201a3810-0a45-11eb-0ac9-a90419d0b723
