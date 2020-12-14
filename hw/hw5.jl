@@ -663,13 +663,14 @@ end
 # ╔═╡ f55659d2-3d35-11eb-3675-bfc8d6d0d687
 let
 	
-	N = 50
-	L = 40
+	N = 100
+	L = 20
+	pandemic = CollisionInfectionRecovery(0.5, 0.000099)
 	
 	agents = initialize(N, L)
 	S_n, I_n, R_n = [],[],[]
 	
-	Tmax = 200
+	Tmax = 100
 	@gif for t in 1:Tmax
 		for _ in 1:50N
 			step!(agents, L, pandemic)
@@ -679,9 +680,10 @@ let
 		push!(I_n, sum(get_status.(agents) .== I))
 		push!(R_n, sum(get_status.(agents) .== R))
 		
-		p = plot(counts[t][1], color = color(S), label = "susceptible")
-        plot!(p, counts[t][2], color = color(I), label = "infected")
-        plot!(p, counts[t][3], color = color(R), label = "recovered")
+		p = plot(S_n, color = color(S), label = "susceptible",
+		         xlim = (1,Tmax), ylim = (1,N))
+        plot!(p, I_n, color = color(I), label = "infected")
+        plot!(p, R_n, color = color(R), label = "recovered")
 		
 		plot(p, visualize(agents, L))
 	end
@@ -694,10 +696,10 @@ md"""
 """
 
 # ╔═╡ 63dd9478-0a45-11eb-2340-6d3d00f9bb5f
-causes_outbreak = CollisionInfectionRecovery(0.5, 0.001)
+causes_outbreak = CollisionInfectionRecovery(0.5, 0.0001)
 
 # ╔═╡ 269955e4-0a46-11eb-02cc-1946dc918bfa
-does_not_cause_outbreak = CollisionInfectionRecovery(0.5, 0.001)
+does_not_cause_outbreak = CollisionInfectionRecovery(0.5, 0.00095)
 
 # ╔═╡ 4d4548fe-0a66-11eb-375a-9313dc6c423d
 
@@ -709,7 +711,34 @@ md"""
 """
 
 # ╔═╡ 601f4f54-0a45-11eb-3d6c-6b9ec75c6d4a
+let
+	sims = 50
+	N = 100
+	L = 20
+	k_sweep_max= 10_000
+	pandemic = CollisionInfectionRecovery(0.5, 0.000099)
+	
+	S_m = zeros(sims,k_sweep_max)
+	I_m = zeros(sims,k_sweep_max)
+	R_m = zeros(sims,k_sweep_max)
+	for i in 1:sims
+		agents = initialize(N, L)
+		for k in 1:k_sweep_max
+			for j in 1:N
+				step!(agents, L, pandemic)
+			end
+			S_m[i,k] = sum(get_status.(agents) .== S)
+			I_m[i,k] = sum(get_status.(agents) .== I)
+			R_m[i,k] = sum(get_status.(agents) .== R)
+		end
+	end
+	
+	
+	plot(S_m')
+end
 
+# ╔═╡ b9bc85c6-3e0d-11eb-3b70-2bf813cbbb01
+[1 2; 3 4]'
 
 # ╔═╡ b1b1afda-0a66-11eb-2988-752405815f95
 need_different_parameters_because = md"""
@@ -1155,7 +1184,7 @@ bigbreak
 # ╠═2d5f2b1e-3d14-11eb-2d35-7d35f97e9412
 # ╠═24fe0f1a-0a69-11eb-29fe-5fb6cbf281b8
 # ╟─1fc3271e-0a45-11eb-0e8d-0fd355f5846b
-# ╟─18552c36-0a4d-11eb-19a0-d7d26897af36
+# ╠═18552c36-0a4d-11eb-19a0-d7d26897af36
 # ╠═4e7fd58a-0a62-11eb-1596-c717e0845bd5
 # ╠═778c2490-0a62-11eb-2a6c-e7fab01c6822
 # ╟─e964c7f0-0a61-11eb-1782-0b728fab1db0
@@ -1176,6 +1205,7 @@ bigbreak
 # ╠═4d4548fe-0a66-11eb-375a-9313dc6c423d
 # ╟─20477a78-0a45-11eb-39d7-93918212a8bc
 # ╠═601f4f54-0a45-11eb-3d6c-6b9ec75c6d4a
+# ╠═b9bc85c6-3e0d-11eb-3b70-2bf813cbbb01
 # ╠═b1b1afda-0a66-11eb-2988-752405815f95
 # ╟─e84e0944-0a66-11eb-12d3-e12ae10f39a6
 # ╟─05c80a0c-09a0-11eb-04dc-f97e306f1603
