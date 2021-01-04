@@ -469,8 +469,7 @@ md"""
 
 # ╔═╡ adbf65fe-12e8-11eb-04e9-3d763ba91a63
 function gradient(f::Function, a, b)
-	
-	return missing
+	return [∂x(f,a,b), ∂y(f,a,b)]
 end
 
 # ╔═╡ 66b8e15e-126c-11eb-095e-39c2f6abc81d
@@ -497,8 +496,7 @@ We want to minimize a 1D function, i.e. a function $f: \mathbb{R} \to \mathbb{R}
 
 # ╔═╡ a7f1829c-12e8-11eb-15a1-5de40ed92587
 function gradient_descent_1d_step(f, x0; η=0.01)
-	
-	return missing
+	return x0 - η*finite_difference_slope(f, x0)
 end
 
 # ╔═╡ d33271a2-12df-11eb-172a-bd5600265f49
