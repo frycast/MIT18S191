@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.17
+# v0.12.18
 
 using Markdown
 using InteractiveUtils
@@ -218,8 +218,7 @@ Using this formula, we only need to know the _value_ ``f(a)`` and the _slope_ ``
 # ╔═╡ fa320028-12c4-11eb-0156-773e2aba8e58
 function euler_integrate_step(fprime::Function, fa::Number, 
 		a::Number, h::Number)
-	
-	return missing
+	return h*fprime(a+h)+fa
 end
 
 # ╔═╡ 2335cae6-112f-11eb-3c2c-254e82014567
@@ -233,8 +232,44 @@ function euler_integrate(fprime::Function, fa::Number,
 	
 	a0 = T[1]
 	h = step(T)
-	
-	return missing
+	n = length(T)
+	integral = zeros(n)
+	for i in 1:n
+		integral[i] = euler_integrate_step(fprime, fa, a0, h)
+		fa = integral[i]
+		a0 = a0 + h
+	end
+	return integral
+end
+
+# ╔═╡ 7b498274-4cc9-11eb-2dd1-69eeaf0049c3
+# My attempt at fixing issues that appear baked into the notebook
+begin
+	function euler_integrate_step2(fprime::Function, fa::Number, 
+		a::Number, h::Number)
+		return h*fprime(a)+fa
+  	end
+	function euler_integrate2(fprime::Function, fa::Number, T::AbstractRange)
+		a = T[1]
+		h = step(T)
+		n = length(T)
+		integral = zeros(n)
+		integral[1] = fa
+		for i in 2:n
+			a = a + h
+			integral[i] = euler_integrate_step2(fprime, integral[i-1], a, h)
+		end
+		return integral
+	end
+	p = let
+		N = 40
+		h = 0.3
+		fprime(x) = wavy_deriv(x)
+		T = h .* (0:N-1)
+		integral = euler_integrate2(fprime, wavy(0), T)
+		p = plot(T, integral)
+		plot!(p, T, wavy)
+	end
 end
 
 # ╔═╡ 4d0efa66-12c6-11eb-2027-53d34c68d5b0
@@ -248,7 +283,6 @@ We already know the analytical solution ``f(x) = x^3``, so the result should be 
 euler_test = let
 	fprime(x) = 3x^2
 	T = 0 : 0.1 : 10
-	
 	euler_integrate(fprime, 0, T)
 end
 
@@ -299,9 +333,9 @@ function euler_SIR_step(β, γ, sir_0::Vector, h::Number)
 	s, i, r = sir_0
 	
 	return [
-		missing,
-		missing,
-		missing,
+		s - h*i*β*s,
+		i + h*i*(β*s-γ),
+		r + h*γ*i
 	]
 end
 
@@ -321,10 +355,13 @@ You should return a vector of vectors: a 3-element vector for each point in time
 function euler_SIR(β, γ, sir_0::Vector, T::AbstractRange)
 	# T is a range, you get the step size and number of steps like so:
 	h = step(T)
-	
 	num_steps = length(T)
-	
-	return missing
+	result = []
+	for _ in 1:num_steps
+		sir_0 = euler_SIR_step(β, γ, sir_0, h)
+		push!(result, sir_0)
+	end
+	return result
 end
 
 # ╔═╡ 4b791b76-12cd-11eb-1260-039c938f5443
@@ -372,7 +409,16 @@ md"""
 """
 
 # ╔═╡ 68274534-1103-11eb-0d62-f1acb57721bc
+@bind β Slider(0:0.1:1, default=1)
 
+# ╔═╡ 10616126-4cd2-11eb-243e-19f135e45ac0
+@bind γ Slider(0:0.1:1, default=1)
+
+# ╔═╡ 15850a54-4cd2-11eb-29b8-1d9f8b061d00
+begin
+	sir_results2 = euler_SIR(β, γ, [0.99, 0.01, 0.00], sir_T)
+	plot_sir!(plot(), sir_T, sir_results2)
+end
 
 # ╔═╡ 82539bbe-106e-11eb-0e9e-170dfa6a7dad
 md"""
@@ -1082,7 +1128,7 @@ let
 	p = plot(LinRange(1.0 - 0.1, 1.0 + 0.1, 2), wavy, label=nothing, lw=3)
 	scatter!(p, [1], wavy, label="f(1)", color="blue", lw=3)
 	# p = plot()
-	x = [a_euler - 0.2,a_euler + 0.2]
+	x = [a_euler - 0.2, a_euler + 0.2]
 	for y in -4:10
 		plot!(p, x, slope .* (x .- a_euler) .+ y, label=nothing, color="purple", opacity=.6)
 	end
@@ -1115,7 +1161,8 @@ let
 			markersize=2, markerstrokewidth=0)
 
 		
-		plot!(p, [0,10], ([0,10] .- (last_a+h)) .* wavy_deriv(last_a+h) .+ history[end],
+		plot!(p, [0,10], 
+			([0,10] .- (last_a+h)) .* wavy_deriv(last_a+h) .+ history[end],
 			label="tangent",
 			color="purple")
 
@@ -1270,18 +1317,19 @@ end
 # ╟─327de976-10b9-11eb-1916-69ad75fc8dc4
 # ╟─43df67bc-10bb-11eb-1cbd-cd962a01e3ee
 # ╠═d5a8bd48-10bf-11eb-2291-fdaaff56e4e6
-# ╟─0b4e8cdc-10bd-11eb-296c-d51dc242a372
-# ╟─70df9a48-10bb-11eb-0b95-95a224b45921
+# ╠═0b4e8cdc-10bd-11eb-296c-d51dc242a372
+# ╠═70df9a48-10bb-11eb-0b95-95a224b45921
 # ╟─1d8ce3d6-112f-11eb-1343-079c18cdc89c
 # ╠═fa320028-12c4-11eb-0156-773e2aba8e58
-# ╟─3df7d63a-12c4-11eb-11ca-0b8db4bd9121
+# ╠═3df7d63a-12c4-11eb-11ca-0b8db4bd9121
 # ╟─2335cae6-112f-11eb-3c2c-254e82014567
 # ╠═fff7754c-12c4-11eb-2521-052af1946b66
+# ╠═7b498274-4cc9-11eb-2dd1-69eeaf0049c3
 # ╟─4d0efa66-12c6-11eb-2027-53d34c68d5b0
 # ╠═b74d94b8-10bf-11eb-38c1-9f39dfcb1096
 # ╟─15b50428-1264-11eb-163e-23e2f3590502
-# ╟─ab72fdbe-10be-11eb-3b33-eb4ab41730d6
-# ╟─990236e0-10be-11eb-333a-d3080a224d34
+# ╠═ab72fdbe-10be-11eb-3b33-eb4ab41730d6
+# ╠═990236e0-10be-11eb-333a-d3080a224d34
 # ╟─d21fad2a-1253-11eb-304a-2bacf9064d0d
 # ╟─518fb3aa-106e-11eb-0fcd-31091a8f12db
 # ╠═1e5ca54e-12d8-11eb-18b8-39b909584c72
@@ -1291,12 +1339,14 @@ end
 # ╠═4b791b76-12cd-11eb-1260-039c938f5443
 # ╠═0a095a94-1245-11eb-001a-b908128532aa
 # ╟─51c9a25e-1244-11eb-014f-0bcce2273cee
-# ╟─58675b3c-1245-11eb-3548-c9cb8a6b3188
+# ╠═58675b3c-1245-11eb-3548-c9cb8a6b3188
 # ╟─b4bb4b3a-12ce-11eb-3fe5-ad7ccd73febb
 # ╟─586d0352-1245-11eb-2504-05d0aa2352c6
 # ╠═589b2b4c-1245-11eb-1ec7-693c6bda97c4
 # ╟─58b45a0e-1245-11eb-04d1-23a1f3a0f242
 # ╠═68274534-1103-11eb-0d62-f1acb57721bc
+# ╠═10616126-4cd2-11eb-243e-19f135e45ac0
+# ╠═15850a54-4cd2-11eb-29b8-1d9f8b061d00
 # ╟─82539bbe-106e-11eb-0e9e-170dfa6a7dad
 # ╟─b394b44e-1245-11eb-2f86-8d10113e8cfc
 # ╠═bd8522c6-12e8-11eb-306c-c764f78486ef
