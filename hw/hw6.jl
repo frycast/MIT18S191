@@ -61,6 +61,13 @@ if(numbers[0] > 0 || numbers[1] > 12 || numbers[2] > 1) {
 
 """
 
+# ╔═╡ 2065f8c4-4e8b-11eb-2b68-e537bbd7b3f0
+md"""
+Extra reading
+* https://mitmath.github.io/18337/lecture9/stiff_odes
+* https://mitmath.github.io/18337/lecture7/discretizing_odes.html
+"""
+
 # ╔═╡ 0579e962-106a-11eb-26b5-2160f461f4cc
 md"""
 
@@ -218,7 +225,7 @@ Using this formula, we only need to know the _value_ ``f(a)`` and the _slope_ ``
 # ╔═╡ fa320028-12c4-11eb-0156-773e2aba8e58
 function euler_integrate_step(fprime::Function, fa::Number, 
 		a::Number, h::Number)
-	return h*fprime(a+h)+fa
+	return h*fprime(a)+fa
 end
 
 # ╔═╡ 2335cae6-112f-11eb-3c2c-254e82014567
@@ -521,7 +528,10 @@ md"""
 # ╔═╡ 9489009a-12e8-11eb-2fb7-97ba0bdf339c
 function gradient_descent_1d(f, x0; η=0.01, N_steps=1000)
 	
-	return missing
+	for _ in 1:N_steps
+		x0 = gradient_descent_1d_step(f, x0; η=η)
+	end
+	return x0
 end
 
 # ╔═╡ 34dc4b02-1248-11eb-26b2-5d2610cfeb41
@@ -538,7 +548,7 @@ Right now we take a fixed number of steps, even if the minimum is found quickly.
 
 # ╔═╡ ebca11d8-12c9-11eb-3dde-c546eccf40fc
 better_stopping_idea = md"""
-blabla
+When the gradient is within some tolerance of 0
 """
 
 # ╔═╡ 9fd2956a-1248-11eb-266d-f558cda55702
@@ -551,15 +561,19 @@ Multivariable calculus tells us that the gradient $\nabla f(a, b)$ at a point $(
 
 # ╔═╡ 852be3c4-12e8-11eb-1bbb-5fbc0da74567
 function gradient_descent_2d_step(f, x0, y0; η=0.01)
-	
-	return missing
+	return [x0,y0] .- η .* gradient(f, x0, y0)
 end
 
 # ╔═╡ 8a114ca8-12e8-11eb-2de6-9149d1d3bc3d
-function gradient_descent_2d(f, x0, y0; η=0.01)
-	
-	return missing
+function gradient_descent_2d(f, x0, y0; η=0.01, N_steps=1000000 )
+	for _ in 1:N_steps
+		x0, y0 = gradient_descent_2d_step(f, x0, y0; η=η)
+	end
+	return [x0,y0]
 end
+
+# ╔═╡ a3695b98-4e85-11eb-19e7-a5b656e5de0e
+true | false
 
 # ╔═╡ 4454c2b2-12e3-11eb-012c-c362c4676bf6
 @bind N_gradient_2d Slider(0:20)
@@ -590,7 +604,9 @@ md"""
 """
 
 # ╔═╡ 6d1ee93e-1103-11eb-140f-63fca63f8b06
-
+md"""
+Yes, the result depends on the initial location
+"""
 
 # ╔═╡ 8261eb92-106e-11eb-2ccc-1348f232f5c3
 md"""
@@ -664,14 +680,16 @@ $$\mathcal{L}(\mu, \sigma) := \sum_i [f_{\mu, \sigma}(x_i) - y_i]^2$$
 """
 
 # ╔═╡ 2fc55daa-124f-11eb-399e-659e59148ef5
-function loss_dice(μ, σ)
-	
-	return missing
+function loss_dice(μ, σ; x = dice_x, y = dice_y, f = gauss)
+	return sum( (f.(x, μ, σ) .- y).^2 )
 end
 
 # ╔═╡ 3a6ec2e4-124f-11eb-0f68-791475bab5cd
 loss_dice(guess_μ + 3, guess_σ) >
 loss_dice(guess_μ, guess_σ)
+
+# ╔═╡ e6a072a0-4e84-11eb-085c-6944f2a37506
+loss_dice(35, 5)
 
 # ╔═╡ 2fcb93aa-124f-11eb-10de-55fced6f4b83
 md"""
@@ -680,10 +698,7 @@ md"""
 
 # ╔═╡ a150fd60-124f-11eb-35d6-85104bcfd0fe
 found_μ, found_σ = let
-	
-	# your code here
-	
-	missing, missing
+	gradient_descent_2d(loss_dice, 30, 1)
 end
 
 # ╔═╡ ac320522-124b-11eb-1552-51c2adaf2521
@@ -769,9 +784,15 @@ This time, instead of comparing two vectors of numbers, we need to compare two v
 """
 
 # ╔═╡ 754b5368-12e8-11eb-0763-e3ec56562c5f
-function loss_sir(β, γ)
+function loss_sir(β, γ; SIR_target = hw4_results, T = hw4_T)
 	
-	return missing
+	sir_0 = SIR_target[1]
+	estimate = euler_SIR(β, γ, sir_0::Vector, T::AbstractRange)
+	loss = 0
+	for i in 1:length(estimate)
+		loss += sum( (estimate[i] .- SIR_target[i]).^2 )
+	end
+	return loss
 end
 
 # ╔═╡ ee20199a-12d4-11eb-1c2c-3f571bbb232e
@@ -784,10 +805,7 @@ md"""
 
 # ╔═╡ 6e1b5b6a-12e8-11eb-3655-fb10c4566cdc
 found_β, found_γ = let
-	
-	# your code here
-	
-	missing, missing
+	gradient_descent_2d(loss_sir, guess_β, guess_γ, N_steps=2000, η=1e-8)
 end
 
 # ╔═╡ b94b7610-106d-11eb-2852-25337ce6ec3a
@@ -856,9 +874,9 @@ let
 	elseif !(result isa Number)
 		keep_working(md"Make sure that you return a number.")
 	else
-		if result ≈ 6358
+		if result ≈ 1462
 			correct()
-		elseif result ≈ 1462
+		elseif result ≈ 6358
 			almost(md"Use ``f'(a+h)``, not ``f'(a)``.")
 		else
 			keep_working()
@@ -1289,6 +1307,7 @@ end
 # ╟─048890ee-106a-11eb-1a81-5744150543e8
 # ╟─0565af4c-106a-11eb-0d38-2fb84493d86f
 # ╟─056ed7f2-106a-11eb-3543-31a5cb560e80
+# ╠═2065f8c4-4e8b-11eb-2b68-e537bbd7b3f0
 # ╟─0579e962-106a-11eb-26b5-2160f461f4cc
 # ╠═0587db1c-106a-11eb-0560-c3d53c516805
 # ╟─05976f0c-106a-11eb-03a4-0febbc18fae8
@@ -1317,7 +1336,7 @@ end
 # ╠═70df9a48-10bb-11eb-0b95-95a224b45921
 # ╟─1d8ce3d6-112f-11eb-1343-079c18cdc89c
 # ╠═fa320028-12c4-11eb-0156-773e2aba8e58
-# ╠═3df7d63a-12c4-11eb-11ca-0b8db4bd9121
+# ╟─3df7d63a-12c4-11eb-11ca-0b8db4bd9121
 # ╟─2335cae6-112f-11eb-3c2c-254e82014567
 # ╠═fff7754c-12c4-11eb-2521-052af1946b66
 # ╠═7b498274-4cc9-11eb-2dd1-69eeaf0049c3
@@ -1372,6 +1391,7 @@ end
 # ╟─9fd2956a-1248-11eb-266d-f558cda55702
 # ╠═852be3c4-12e8-11eb-1bbb-5fbc0da74567
 # ╠═8a114ca8-12e8-11eb-2de6-9149d1d3bc3d
+# ╠═a3695b98-4e85-11eb-19e7-a5b656e5de0e
 # ╠═92854562-1249-11eb-0b81-156982df1284
 # ╠═4454c2b2-12e3-11eb-012c-c362c4676bf6
 # ╟─fbb4a9a4-1248-11eb-00e2-fd346f0056db
@@ -1398,6 +1418,7 @@ end
 # ╟─471cbd84-124c-11eb-356e-371d23011af5
 # ╠═2fc55daa-124f-11eb-399e-659e59148ef5
 # ╠═3a6ec2e4-124f-11eb-0f68-791475bab5cd
+# ╠═e6a072a0-4e84-11eb-085c-6944f2a37506
 # ╟─2fcb93aa-124f-11eb-10de-55fced6f4b83
 # ╠═a150fd60-124f-11eb-35d6-85104bcfd0fe
 # ╟─3f5e88bc-12c8-11eb-2d74-51f2f5060928
