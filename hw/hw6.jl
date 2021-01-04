@@ -440,9 +440,8 @@ You should use **anonymous functions** for this. These have the form `x -> x^2`,
 """
 
 # ╔═╡ bd8522c6-12e8-11eb-306c-c764f78486ef
-function ∂x(f::Function, a, b)
-	
-	return missing
+function ∂x(f::Function, a, b, h=1e-3)
+	return finite_difference_slope( x -> f(x,b), a )
 end
 
 # ╔═╡ 321964ac-126d-11eb-0a04-0d3e3fb9b17c
@@ -452,9 +451,8 @@ end
 )
 
 # ╔═╡ b7d3aa8c-12e8-11eb-3430-ff5d7df6a122
-function ∂y(f::Function, a, b)
-	
-	return missing
+function ∂y(f::Function, a, b, h=1e-3)
+	return finite_difference_slope( x -> f(a,x), b )
 end
 
 # ╔═╡ a15509ee-126c-11eb-1fa3-cdda55a47fcb
